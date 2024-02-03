@@ -42,7 +42,8 @@ public:
     // as it can lead to undefined behaviour. Only after you are done using the iterator is it safe to perform these
     // actions.
 
-    // TODO: invalidate any iterator when any of the cases above happens
+    // TODO: Invalidate any iterator when any of the cases above happens.
+    // Store a pointer to each iterator, and when any mutation occurs to the Entities, invalidate all stored iterators.
     class Iterator {
     public:
         Iterator(Entities *world, uint32_t currentArchtypeIndex, uint32_t currentRowIndex, bool ended = false)

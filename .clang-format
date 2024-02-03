@@ -8,7 +8,7 @@ AllowShortFunctionsOnASingleLine: false
 NamespaceIndentation: All
 IndentCaseLabels: false
 AccessModifierOffset: -4
-ColumnLimit: 110
+ColumnLimit: 130
 AllowShortEnumsOnASingleLine: false
 AllowShortBlocksOnASingleLine: Empty
 AllowShortCaseLabelsOnASingleLine: true

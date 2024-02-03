@@ -4,6 +4,7 @@
 #include "cpu_mesh.hpp"
 #include "geometry.hpp"
 #include "src/math/math.hpp"
+#include "src/renderer/material.hpp"
 #include "src/renderer/wgpu_mesh.hpp"
 
 struct VertexData {
@@ -16,7 +17,7 @@ class Mesh {
 public:
     Mesh() = default;
 
-    Mesh(Geometry&& tGeometry) {
+    Mesh(Geometry* tGeometry, Material* tMaterial) : mGeometry(tGeometry), mMaterial(tMaterial) {
         mCPUMesh.request_vertex_normals();
         mCPUMesh.request_vertex_texcoords2D();
         mCPUMesh.request_face_normals();
@@ -29,7 +30,7 @@ public:
         // uv
         mGPUMesh.setAttribute(VertexFormat::Float32x2, offsetof(VertexData, uv), 2);
 
-        tGeometry(mCPUMesh);
+        (*tGeometry)(mCPUMesh);
 
         mCPUMesh.update_normals();
 
@@ -61,12 +62,19 @@ public:
         }
     }
 
-    WGPUMesh& toGPUMesh() {
-        return mGPUMesh;
+    MeshDrawData drawData() {
+        MeshDrawData data;
+        data.vertexBuffers = std::vector{*mGPUMesh.mVertexBuffer};
+        data.indexBuffer = *mGPUMesh.mIndexBuffer;
+        data.vertexBufferLayouts = std::vector{mGPUMesh.description()};
+        data.vertexCount = mCPUMesh.n_faces() * 3;
+        return data;
     }
 
 private:
     CPUMesh mCPUMesh;
+    std::unique_ptr<Geometry> mGeometry;
+    std::unique_ptr<Material> mMaterial;
     WGPUMesh mGPUMesh;
     bool mDirty = true;
 };

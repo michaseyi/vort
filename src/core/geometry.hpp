@@ -5,6 +5,7 @@
 class Geometry {
 public:
     virtual void operator()(CPUMesh &) const = 0;
+    virtual ~Geometry() = default;
 };
 
 class Cube : public Geometry {

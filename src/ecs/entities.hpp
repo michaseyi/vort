@@ -33,7 +33,8 @@ template <typename...>
 struct UniqueTypes : std::true_type {};
 
 template <typename T, typename... Rest>
-struct UniqueTypes<T, Rest...> : std::integral_constant<bool, (!std::is_same_v<T, Rest> && ...) && UniqueTypes<Rest...>::value> {};
+struct UniqueTypes<T, Rest...> : std::integral_constant<bool, (!std::is_same_v<T, Rest> && ...) && UniqueTypes<Rest...>::value> {
+};
 
 class Entities {
 public:
@@ -42,11 +43,16 @@ public:
 
     using Plugin = std::function<void(Entities&)>;
 
+    using InitComponentHandler = std::function<void(Entities&, EntityID)>;
+    using DeinitComponentHandler = InitComponentHandler;
+
     const static inline uint64_t VOID_ARCHTYPE_HASH = std::numeric_limits<uint64_t>::max();
 
     const static inline uint32_t ROOT_ENTITY_ID = 0;
 
     Entities(const Entities&) = delete;
+
+    Entities& operator()(const Entities&) = delete;
 
     EntityID getParent(EntityID entityID);
 
@@ -69,6 +75,18 @@ public:
         u_int16_t archtypeIndex;
         uint32_t rowIndex;
     };
+
+    /**
+     * @brief The handler is called before the componet is added to the entity
+     */
+    template <typename T>
+    void setComponentInitHandler(InitComponentHandler handler);
+
+    /**
+     * @brief The handler is called before the componet is removed from the entity
+     */
+    template <typename T>
+    void setComponentDeinitHandler(DeinitComponentHandler handler);
 
     std::vector<ArchTypeStorage>& archtypes();
 
@@ -127,6 +145,9 @@ private:
     std::map<EntityID, EntityID> mParentMap;
 
     std::unordered_set<EntityID> mReusableEntityIDs;
+
+    std::map<std::type_index, InitComponentHandler> mInitComponentHandlers;
+    std::map<std::type_index, DeinitComponentHandler> mDeinitComponentHandlers;
 };
 
 using World = Entities;

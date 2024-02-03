@@ -3,13 +3,7 @@
 #include "src/utils/raii.hpp"
 #include "wgpu_context.hpp"
 
-template <>
-struct RAIIDeleter<wgpu::Texture> {
-    void deleter(wgpu::Texture &tTexture) {
-        tTexture.destroy();
-        tTexture.release();
-    }
-};
+
 
 class Texture {
 public:

@@ -1,5 +1,7 @@
 #include "entities.hpp"
 
+#include "command.hpp"
+
 #if defined(EMSCRIPTEN)
 #include <emscripten/emscripten.h>
 
@@ -9,6 +11,20 @@
 #include <set>
 
 #ifdef ENTITIES_TEMPLATE_IMPL
+
+template <typename T>
+void Entities::setComponentInitHandler(InitComponentHandler handler) {
+    auto typeIndex = std::type_index(typeid(T));
+
+    mInitComponentHandlers[typeIndex] = std::move(handler);
+}
+
+template <typename T>
+void Entities::setComponentDeinitHandler(DeinitComponentHandler handler) {
+    auto typeIndex = std::type_index(typeid(T));
+
+    mDeinitComponentHandlers[typeIndex] = std::move(handler);
+}
 
 template <typename... Args, typename... Rest>
 Entities& Entities::addSystems(SystemSchedule schedule, System<Args...> system, Rest... rest) {
@@ -97,6 +113,18 @@ void Entities::setComponents(EntityID entityID, T... components) {
         // This has to be done incase some of the component to be added already exists in the current archtype
         // of the entity
         auto uniqueComponents = std::set<std::type_index>{std::type_index(typeid(T))...};
+
+        // call component init handler on new components to be added
+        for (auto& type : uniqueComponents) {
+            if (!entityArchType.hasComponent(type)) {
+                auto initComponentHandler = mInitComponentHandlers.find(type);
+                if (initComponentHandler == mInitComponentHandlers.end()) {
+                    continue;
+                }
+                initComponentHandler->second(*this, entityID);
+            }
+        }
+
         for (auto& type : entityArchType.componentTypes()) {
             uniqueComponents.emplace(type);
         }
@@ -178,6 +206,15 @@ void Entities::removeComponents(EntityID entityID) {
 
     std::set<std::type_index> componentsToRemove = {std::type_index(typeid(T))...};
 
+    // call component deinit handler for components to be removed
+    for (auto& type : componentsToRemove) {
+        auto deinitComponentHandler = mDeinitComponentHandlers.find(type);
+        if (deinitComponentHandler == mDeinitComponentHandlers.end()) {
+            continue;
+        }
+        deinitComponentHandler->second(*this, entityID);
+    }
+
     std::vector<std::type_index> componentsToRemainWithEntity;
 
     for (auto& type : currentArchtype.componentTypes()) {
@@ -203,8 +240,7 @@ void Entities::removeComponents(EntityID entityID) {
     auto newRowIndex = newArchtype->newRow(entityID);
 
     for (auto type : componentsToRemainWithEntity) {
-        newArchtype->getComponent(type)->copyFrom(rowIndexInCurrentArchType, newRowIndex,
-                                                  *prevArchtype.getComponent(type));
+        newArchtype->getComponent(type)->copyFrom(rowIndexInCurrentArchType, newRowIndex, *prevArchtype.getComponent(type));
     }
 
     auto archTypeIndex = mArchtypes.denseStorageIndex(newHash);
@@ -224,8 +260,7 @@ template <typename T>
 void Entities::traverse(std::function<T(Entities&, EntityID, T)> callback, T startValue, EntityID rootEntityID) {
     auto& children = getChildren(rootEntityID);
 
-    auto updatedValue =
-        rootEntityID == Entities::ROOT_ENTITY_ID ? startValue : callback(*this, rootEntityID, startValue);
+    auto updatedValue = rootEntityID == Entities::ROOT_ENTITY_ID ? startValue : callback(*this, rootEntityID, startValue);
 
     for (auto child : children) {
         traverse(callback, updatedValue, child);
@@ -329,6 +364,15 @@ void Entities::_removeEntity(EntityID entityID, bool removeFromParent) {
     }
 
     auto& archtype = archtypeFromEntityID(entityID);
+
+    // call component deinit handler for all componets of entity to be removed
+    for (auto& type : archtype.componentTypes()) {
+        auto deinitComponentHandler = mDeinitComponentHandlers.find(type);
+        if (deinitComponentHandler == mDeinitComponentHandlers.end()) {
+            continue;
+        }
+        deinitComponentHandler->second(*this, entityID);
+    }
 
     auto& entityPtr = mEntities[entityID];
 

@@ -4,12 +4,11 @@
 
 using VertexFormat = wgpu::VertexFormat;
 
-template <>
-struct RAIIDeleter<wgpu::Buffer> {
-    static void deleter(wgpu::Buffer &tBuffer) {
-        tBuffer.destroy();
-        tBuffer.release();
-    }
+struct MeshDrawData {
+    std::vector<wgpu::Buffer> vertexBuffers;
+    wgpu::Buffer indexBuffer = nullptr;
+    std::vector<wgpu::VertexBufferLayout> vertexBufferLayouts;
+    uint64_t vertexCount;
 };
 
 class WGPUMesh {
@@ -18,10 +17,10 @@ class WGPUMesh {
                                                              11, 12, 13, 14, 15, 16, 17, 18, 4, 8, 12,
                                                              16, 23, 24, 25, 26, 27, 28, 29, 30};
 
+    friend class Mesh;
+
 public:
     wgpu::VertexBufferLayout description();
-
-    uint64_t attributeSize();
 
     void setAttribute(wgpu::VertexFormat tFormat, uint64_t tOffset, uint32_t tShaderLocation);
 
@@ -32,6 +31,9 @@ public:
     void allocateIndexBuffer(size_t tSize);
 
     void allocateVertexBuffer(size_t tSize);
+
+private:
+    uint64_t attributeSize();
 
 private:
     std::vector<wgpu::VertexAttribute> mAttributes;
