@@ -16,10 +16,7 @@ struct AmbientLight {
 struct PointLight {
     PointLight() = default;
     PointLight(vec3 position, float intensity, vec3 color, vec3 attenuation_coefficients)
-        : position(position),
-          intensity(intensity),
-          color(color),
-          attenuation_coefficients(attenuation_coefficients) {
+        : position(position), intensity(intensity), color(color), attenuation_coefficients(attenuation_coefficients) {
     }
     vec3 position;    // at byte offset 0
     float intensity;  // at byte offset 12
@@ -38,6 +35,17 @@ struct DirectionalLight {
     float _pad1;
 };
 struct SpotLight {
+    SpotLight() = default;
+    SpotLight(vec3 position, float inner_cone_angle, float outer_cone_angle, vec3 direction, vec3 color, float intensity,
+              vec3 attenuation_coefficients)
+        : position(position),
+          inner_cone_angle(inner_cone_angle),
+          outer_cone_angle(outer_cone_angle),
+          direction(direction),
+          color(color),
+          intensity(intensity),
+          attenuation_coefficients(attenuation_coefficients) {
+    }
     vec3 position;                  // at byte offset 0
     float inner_cone_angle;         // at byte offset 12
     vec3 direction;                 // at byte offset 16

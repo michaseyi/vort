@@ -1,11 +1,58 @@
 #pragma once
+#include <limits>
+#include <sstream>
+
 #include "cpu_mesh.hpp"
 #include "src/math/math.hpp"
+#include "src/utils/utils.hpp"
 
 class Geometry {
 public:
-    virtual void operator()(CPUMesh &) const = 0;
+    virtual void operator()(CPUMesh &) = 0;
     virtual ~Geometry() = default;
+};
+
+class ObjLoader : public Geometry {
+public:
+    ObjLoader(std::string tObjPath) : mObjPath(tObjPath){};
+
+    void operator()(CPUMesh &tMesh) override {
+        std::stringstream ss(loadString(mObjPath));
+        std::string lineBuffer;
+
+        std::vector<CPUMesh::VertexHandle> faceVertices;
+        faceVertices.reserve(3);
+        while (!ss.eof()) {
+            std::getline(ss, lineBuffer);
+            if (lineBuffer.starts_with("v")) {
+                std::stringstream line(lineBuffer);
+                CPUMesh::Point point;
+                line.ignore(2);
+                line >> point[0] >> point[1] >> point[2];
+                tMesh.add_vertex(point);
+            } else if (lineBuffer.starts_with("f")) {
+                std::stringstream line(lineBuffer);
+                line.ignore(2);
+                int32_t vertexIdx;
+                line >> vertexIdx;
+                faceVertices.emplace_back(vertexIdx - 1);
+
+                line.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
+                line >> vertexIdx;
+                faceVertices.emplace_back(vertexIdx - 1);
+
+                line.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
+                line >> vertexIdx;
+                faceVertices.emplace_back(vertexIdx - 1);
+
+                tMesh.add_face(faceVertices);
+                faceVertices.clear();
+            }
+        }
+    }
+
+private:
+    std::string mObjPath;
 };
 
 class Cube : public Geometry {
@@ -13,7 +60,7 @@ public:
     Cube(float tSize) : mSize(tSize) {
     }
 
-    void operator()(CPUMesh &tMesh) const override {
+    void operator()(CPUMesh &tMesh) override {
         std::vector<CPUMesh::VertexHandle> vHandles;
         vHandles.reserve(8);
         vHandles.push_back(tMesh.add_vertex(CPUMesh::Point(-1, -1, 1)));
@@ -43,12 +90,37 @@ private:
     float mSize;
 };
 
+class Plane : public Geometry {
+public:
+    Plane(float tWidth, float tHeight) : mWidth(tWidth), mHeight(tHeight) {
+    }
+
+    void operator()(CPUMesh &tMesh) override {
+        float halfWidth = mWidth / 2.0f;
+        float halfHeight = mHeight / 2.0f;
+
+        std::vector<CPUMesh::VertexHandle> vHandles = {
+            tMesh.add_vertex(CPUMesh::Point(-halfWidth, 0.0f, halfHeight)),
+            tMesh.add_vertex(CPUMesh::Point(halfWidth, 0.0f, halfHeight)),
+            tMesh.add_vertex(CPUMesh::Point(halfWidth, 0.0f, -halfHeight)),
+            tMesh.add_vertex(CPUMesh::Point(-halfWidth, 0.0f, -halfHeight)),
+        };
+
+        tMesh.add_face({vHandles[0], vHandles[1], vHandles[3]});
+        tMesh.add_face({vHandles[1], vHandles[2], vHandles[3]});
+    }
+
+private:
+    float mWidth;
+    float mHeight;
+};
+
 class UVSphere : public Geometry {
 public:
     UVSphere(uint32_t tLongitudeSegments, uint32_t tLatitudeSegments, float tRadius)
         : mLongitudeSegments(tLongitudeSegments), mLatitudeSegments(tLatitudeSegments), mRadius(tRadius){};
 
-    void operator()(CPUMesh &tMesh) const override {
+    void operator()(CPUMesh &tMesh) override {
         const float PI = math::pi<float>();
 
         std::vector<std::vector<CPUMesh::VertexHandle>> vHandles;
@@ -67,10 +139,9 @@ public:
 
         auto topCenter = tMesh.add_vertex(
 
-            CPUMesh::Point(mRadius * math::cos(math::radians(90.0f)),
-                           mRadius * math::sin(math::radians(90.0f)), 0.0f));
-        auto bottomCenter = tMesh.add_vertex(CPUMesh::Point(
-            mRadius * math::cos(math::radians(90.0f)), mRadius * math::sin(math::radians(-90.0f)), 0.0f));
+            CPUMesh::Point(mRadius * math::cos(math::radians(90.0f)), mRadius * math::sin(math::radians(90.0f)), 0.0f));
+        auto bottomCenter = tMesh.add_vertex(
+            CPUMesh::Point(mRadius * math::cos(math::radians(90.0f)), mRadius * math::sin(math::radians(-90.0f)), 0.0f));
 
         for (uint32_t i = 0; i < mLongitudeSegments; ++i) {
             auto max_index = vHandles[i].size() - 1;
@@ -114,13 +185,58 @@ private:
     float mRadius = 1.0f;
 };
 
-class Cylinder : public Geometry {
+class Cone : public Geometry {
 public:
-    Cylinder(float tRadius, float tHeight, float tSegments)
-        : mRadius(tRadius), mHeight(tHeight), mSegments(tSegments) {
+    Cone(float tRadius, float tHeight, uint32_t tSegments) : mRadius(tRadius), mHeight(tHeight), mSegments(tSegments) {
     }
 
-    void operator()(CPUMesh &tMesh) const override {
+    void operator()(CPUMesh &tMesh) override {
+        auto coneTop = tMesh.add_vertex(CPUMesh::Point(0.0f, mHeight, 0.0f));
+
+        auto coneBottom = tMesh.add_vertex(CPUMesh::Point(0.0f));
+
+        auto twoPi = math::two_pi<float>();
+
+        std::vector<CPUMesh::VertexHandle> circleVhandles;
+
+        for (uint32_t i = 0; i < mSegments; i++) {
+            float t = i * (twoPi / mSegments);
+            float x = math::cos(t);
+            float z = math::sin(t);
+
+            circleVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, 0.0f, z)));
+        }
+
+        std::vector<CPUMesh::VertexHandle> faceVhandles;
+        faceVhandles.reserve(3);
+        for (uint32_t i = 0; i < mSegments; i++) {
+            faceVhandles.push_back(coneBottom);
+            faceVhandles.push_back(circleVhandles[i]);
+            faceVhandles.push_back(circleVhandles[(i + 1) % mSegments]);
+
+            tMesh.add_face(faceVhandles);
+            faceVhandles.clear();
+
+            faceVhandles.push_back(circleVhandles[i]);
+            faceVhandles.push_back(coneTop);
+            faceVhandles.push_back(circleVhandles[(i + 1) % mSegments]);
+            tMesh.add_face(faceVhandles);
+            faceVhandles.clear();
+        }
+    }
+
+private:
+    float mRadius;
+    float mHeight;
+    uint32_t mSegments;
+};
+
+class Cylinder : public Geometry {
+public:
+    Cylinder(float tRadius, float tHeight, uint32_t tSegments) : mRadius(tRadius), mHeight(tHeight), mSegments(tSegments) {
+    }
+
+    void operator()(CPUMesh &tMesh) override {
         const float PI = math::pi<float>();
 
         // Create vertices for the top and bottom circles
@@ -150,8 +266,7 @@ public:
             tMesh.add_face(bottomVhandles[i], bottomVhandles[(i + 1) % mSegments], topVhandles[i]);
 
             // Second triangle
-            tMesh.add_face(bottomVhandles[(i + 1) % mSegments], topVhandles[(i + 1) % mSegments],
-                           topVhandles[i]);
+            tMesh.add_face(bottomVhandles[(i + 1) % mSegments], topVhandles[(i + 1) % mSegments], topVhandles[i]);
         }
     }
 

@@ -10,10 +10,15 @@ uint32_t ComponentStorage<T>::put(T component) {
 
 template <typename T>
 void ComponentStorage<T>::remove(uint32_t rowIndex) {
-    if (mEntries.size() > rowIndex) {
-        std::swap(mEntries[rowIndex], mEntries.back());
-        mEntries.pop_back();
+    if (!(mEntries.size() > rowIndex)) {
+        return;
     }
+
+    if (rowIndex < mEntries.size() - 1) {
+        std::swap(mEntries[rowIndex], mEntries.back());
+    }
+
+    mEntries.pop_back();
 }
 
 template <typename T>

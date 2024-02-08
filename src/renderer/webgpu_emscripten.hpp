@@ -43,7 +43,7 @@
 #include <vector>
 
 #if __EMSCRIPTEN__
-#include <emscripten.h>
+#include <emscripten/emscripten.h>
 #endif
 
 /**

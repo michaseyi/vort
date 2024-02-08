@@ -9,13 +9,15 @@ struct MeshDrawData {
     wgpu::Buffer indexBuffer = nullptr;
     std::vector<wgpu::VertexBufferLayout> vertexBufferLayouts;
     uint64_t vertexCount;
+    wgpu::ShaderModule vertexShader = nullptr;
+    wgpu::ShaderModule fragmentShader = nullptr;
+    std::string vertexShaderEntry;
 };
 
 class WGPUMesh {
     // TODO: Complete all the mappings. For now only Float32 to Float32X4 works.
-    inline static constexpr uint32_t VertexFormatToSize[] = {0,  1,  2,  3,  4,  5,  6,  7,  8, 9, 10,
-                                                             11, 12, 13, 14, 15, 16, 17, 18, 4, 8, 12,
-                                                             16, 23, 24, 25, 26, 27, 28, 29, 30};
+    inline static constexpr uint32_t VertexFormatToSize[] = {0,  1,  2,  3, 4, 5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15,
+                                                             16, 17, 18, 4, 8, 12, 16, 23, 24, 25, 26, 27, 28, 29, 30};
 
     friend class Mesh;
 

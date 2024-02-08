@@ -36,6 +36,15 @@ template <typename T, typename... Rest>
 struct UniqueTypes<T, Rest...> : std::integral_constant<bool, (!std::is_same_v<T, Rest> && ...) && UniqueTypes<Rest...>::value> {
 };
 
+enum class EntityInterface {
+    None = 0,
+    Mesh,
+    Camera,
+    Light,
+    Scene,
+};
+
+
 class Entities {
 public:
     template <typename... Args>
@@ -56,9 +65,13 @@ public:
 
     EntityID getParent(EntityID entityID);
 
+    std::string& getName(EntityID entityID);
+
+    EntityInterface getInterface(EntityID entityID);
+
     const std::vector<EntityID>& getChildren(EntityID parentID = Entities::ROOT_ENTITY_ID);
 
-    EntityID newEntity(EntityID parentID = Entities::ROOT_ENTITY_ID);
+    EntityID newEntity(std::string name, EntityInterface interface, EntityID parentID = Entities::ROOT_ENTITY_ID);
 
     void removeEntity(EntityID entityID);
 
@@ -74,6 +87,8 @@ public:
     struct Pointer {
         u_int16_t archtypeIndex;
         uint32_t rowIndex;
+        std::string name;
+        EntityInterface interface;
     };
 
     /**
@@ -126,6 +141,7 @@ private:
     uint32_t mNextEntityId = 1;
 
     std::unordered_map<EntityID, Pointer> mEntities;
+    std::map<std::string, EntityID> mNameIndex;
     ArrayHashMap<uint64_t, ArchTypeStorage> mArchtypes;
 
     ArchTypeStorage& archtypeFromEntityID(EntityID entityID);

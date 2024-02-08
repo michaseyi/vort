@@ -6,8 +6,7 @@
 class Shader {
 public:
     Shader(std::string path) {
-        auto shaderCode = loadShaderCode(path);
-
+        auto shaderCode = preprocessShader(loadShaderCode(path));
         wgpu::ShaderModuleWGSLDescriptor shaderModuleWGSLDesc = wgpu::Default;
 
         shaderModuleWGSLDesc.code = shaderCode.c_str();
@@ -22,6 +21,5 @@ public:
         shaderModule = device.createShaderModule(shaderModuleDesc);
     }
 
-private:
     RAIIWrapper<wgpu::ShaderModule> shaderModule;
 };

@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "resource.hpp"
+#include "shader.hpp"
 #include "src/core/components.hpp"
 #include "src/core/data_structs.hpp"
 #include "src/core/window.hpp"
@@ -10,10 +11,16 @@
 #include "src/utils/raii.hpp"
 #include "wgpu_context.hpp"
 
+struct GeneralUniforms {
+    std::shared_ptr<Uniform> commonUniforms;
+    std::shared_ptr<Uniform> modelUniforms;
+};
+
 struct RenderTarget {
     std::vector<wgpu::ColorTargetState> colorTargets;
     std::vector<wgpu::RenderPassColorAttachment> colorAttachments;
     std::vector<RAIIWrapper<wgpu::TextureView>> textureViews;
+    std::vector<wgpu::BlendState> colorTargetBlendState;
 };
 struct Pass {
     virtual void operator()(wgpu::CommandEncoder &tCommandEncoder, Command &tCommand) = 0;
@@ -30,6 +37,8 @@ struct Pass {
 };
 
 struct DefaultRenderPass : public Pass {
+    DefaultRenderPass() = default;
+
     RenderTarget renderTargets() {
         RenderTarget renderTarget;
 
@@ -40,7 +49,7 @@ struct DefaultRenderPass : public Pass {
         renderTarget.textureViews.push_back(context.getMultiSampleTextureView());
 
         wgpu::RenderPassColorAttachment colorAttachment = wgpu::Default;
-        colorAttachment.clearValue = {1, 0, 0, 1};
+        colorAttachment.clearValue = {0, 0, 0, 1};
         colorAttachment.loadOp = wgpu::LoadOp::Clear;
         colorAttachment.storeOp = wgpu::StoreOp::Store;
         colorAttachment.view = *renderTarget.textureViews[1];
@@ -59,9 +68,9 @@ struct DefaultRenderPass : public Pass {
         colorTarget.format = context.getOutputTextureFormat();
         colorTarget.writeMask = wgpu::ColorWriteMask::All;
 
-        // TODO: Invalid code; attempts to return address of local variable;
-        
-        colorTarget.blend = &colorTargetBlendState;
+        renderTarget.colorTargetBlendState = {colorTargetBlendState};
+
+        colorTarget.blend = &renderTarget.colorTargetBlendState[0];
 
         // color attachments.
         renderTarget.colorAttachments = {colorAttachment};
@@ -78,7 +87,7 @@ struct DefaultRenderPass : public Pass {
 
         auto depthStencilTextureView = context.getDepthStencilTextureView();
 
-        auto [window, commonUniforms] = tCommand.getGlobal<Window, std::shared_ptr<Uniform<CommonUniforms>>>();
+        auto [window, resourceGroupZero, generalUniforms] = tCommand.getGlobal<Window, ResourceGroup, GeneralUniforms>();
 
         auto renderTarget = renderTargets();
 
@@ -105,17 +114,31 @@ struct DefaultRenderPass : public Pass {
         auto [cameraSettings, cameraPosition, cameraOrientation] =
             *tCommand.query<Columns<CameraSettings, Position, Orientation>, Tags<>>().begin();
 
-        math::mat4 viewMatrix = math::lookAt(math::vec3(), math::vec3(), math::vec3());
+        float time = glfwGetTime();
 
-        math::mat4 projectionMatrix =
-            math::perspectiveZO(cameraSettings.fov, cameraSettings.aspectRatio, cameraSettings.near, cameraSettings.far);
+        auto orientation = math::angleAxis(time, math::vec3(0.0f, 1.0f, 0.0f));
+
+        math::vec3 xDirection = math::vec3(1.0f, 0.0f, 0.0f);
+        math::vec3 yDirection = math::vec3(0.0f, 1.0f, 0.0f);
+
+        auto front = math::normalize(static_cast<math::quat>(orientation) * xDirection);
+        auto up = math::normalize(static_cast<math::quat>(orientation) * yDirection);
+
+        auto viewMatrix = math::lookAt(math::vec3(0.0f), front, up) *
+                          math::translate(math::mat4(1.0f), -static_cast<math::vec3>(cameraPosition));
+
+        // math::mat4 viewMatrix =
+        //     math::lookAt(static_cast<math::vec3>(cameraPosition), math::vec3(0.0f), math::vec3(0.0f, 1.0f, 0.0f));
+
+        math::mat4 projectionMatrix = math::perspectiveZO(math::radians(cameraSettings.fov), cameraSettings.aspectRatio,
+                                                          cameraSettings.near, cameraSettings.far);
 
         CommonUniforms common{};
         common.view_projection_matrix = projectionMatrix * viewMatrix;
         common.resolution = math::uvec2(window.width(), window.height());
 
         // TODO: make a global time component and pull common.time from there
-        common.time = glfwGetTime();
+        common.time = time;
 
         for (auto [spotLight] : tCommand.query<Columns<SpotLight>, Tags<>>()) {
             assert(common.spot_light_count < 5 && "Maxiimum of 5 spotlight");
@@ -138,71 +161,90 @@ struct DefaultRenderPass : public Pass {
             common.ambient_light_count++;
         }
 
-        commonUniforms->set(common);
+        generalUniforms.commonUniforms->set(sizeof(common), &common);
 
 #pragma endregion
 
 #pragma region drawing each mesh
-//         for (auto [position, scale, orientation, mesh] :
-//              tCommand.query<Columns<Position, Scale, Orientation, Mesh>, Tags<>>()) {
-//             mesh.updateGPUMesh();
+        uint32_t meshIndex = 0;
+        for (auto [position, scale, orientation, mesh] : tCommand.query<Columns<Position, Scale, Orientation, Mesh>, Tags<>>()) {
+            mesh.updateGPUMesh();
+            mesh.material->update(meshIndex);
 
-//             math::mat4 modelMatrix = math::translate(math::mat4(1.0f), math::vec3(position));
-//             modelMatrix = math::rotate(modelMatrix, math::angle(math::quat(orientation)),
-//                                        math::axis(math::quat(orientation)));
-//             modelMatrix = math::scale(modelMatrix, math::vec3(scale));
+            math::mat4 modelMatrix = math::translate(math::mat4(1.0f), math::vec3(position));
+            modelMatrix = math::rotate(modelMatrix, math::angle(math::quat(orientation)), math::axis(math::quat(orientation)));
+            modelMatrix = math::scale(modelMatrix, math::vec3(scale));
 
-//             auto normalMatrix = math::mat3(modelMatrix);
+            auto normalMatrix = math::mat3(modelMatrix);
 
-//             ModelUniforms model{};
-//             model.model_matrix = modelMatrix;
-//             model.normal_matrix = normalMatrix;
+            ModelUniforms model{};
+            model.model_matrix = modelMatrix;
+            model.normal_matrix = normalMatrix;
 
-//             wgpu::RenderPipelineDescriptor renderPipelineDesc = wgpu::Default;
+            generalUniforms.modelUniforms->set(meshIndex, 0, sizeof(model), &model);
 
-//             // drawing modes modes -> surfaces (the default), edges(wireframe), vertices
-//             auto meshDrawData = mesh.drawData();
+            wgpu::RenderPipelineDescriptor renderPipelineDesc = wgpu::Default;
 
-//             renderPipelineDesc.vertex.bufferCount = meshDrawData.vertexBuffers.size();
-//             renderPipelineDesc.vertex.buffers = meshDrawData.vertexBufferLayouts.data();
-//             renderPipelineDesc.vertex.entryPoint = "vs_main";
-//             // renderPipelineDesc.vertex.module
+            // drawing modes modes -> surfaces (the default), edges(wireframe), vertices
+            auto meshDrawData = mesh.drawData();
 
-//             renderPipelineDesc.multisample.count = 4;
-//             renderPipelineDesc.multisample.alphaToCoverageEnabled = true;
-//             renderPipelineDesc.multisample.mask = ~0u;
+            renderPipelineDesc.vertex.bufferCount = meshDrawData.vertexBuffers.size();
+            renderPipelineDesc.vertex.buffers = meshDrawData.vertexBufferLayouts.data();
+            renderPipelineDesc.vertex.entryPoint = meshDrawData.vertexShaderEntry.c_str();
+            renderPipelineDesc.vertex.module = meshDrawData.vertexShader;
 
-//             wgpu::FragmentState fragmentState = wgpu::Default;
-//             fragmentState.targets = renderTarget.colorTargets.data();
-//             fragmentState.targetCount = renderTarget.colorTargets.size();
-//             fragmentState.entryPoint = "fs_main";
-//             // fragmentState.module
-//             renderPipelineDesc.fragment = &fragmentState;
+            renderPipelineDesc.multisample.count = 4;
+            renderPipelineDesc.multisample.alphaToCoverageEnabled = true;
+            renderPipelineDesc.multisample.mask = ~0u;
 
-//             renderPipelineDesc.primitive.cullMode = wgpu::CullMode::Back;
-//             renderPipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
-//             renderPipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
+            wgpu::FragmentState fragmentState = wgpu::Default;
+            fragmentState.targets = renderTarget.colorTargets.data();
+            fragmentState.targetCount = renderTarget.colorTargets.size();
+            fragmentState.entryPoint = "fs_main";
+            fragmentState.module = mesh.material->shader();
+            renderPipelineDesc.fragment = &fragmentState;
 
-// #pragma region pipeline for resources
-//             wgpu::PipelineLayoutDescriptor pipelineLayoutDescriptor = wgpu::Default;
+            renderPipelineDesc.primitive.cullMode = wgpu::CullMode::Back;
+            renderPipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
+            renderPipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
 
-//             RAIIWrapper<wgpu::PipelineLayout> layout =
-//             device.createPipelineLayout(pipelineLayoutDescriptor);
-// #pragma endregion
-//             renderPipelineDesc.layout = *layout;
+            wgpu::DepthStencilState depthStencilState = wgpu::Default;
+            depthStencilState.depthCompare = wgpu::CompareFunction::Less;
+            depthStencilState.depthWriteEnabled = true;
+            depthStencilState.format = wgpu::TextureFormat::Depth24PlusStencil8;
+            renderPipelineDesc.depthStencil = &depthStencilState;
 
-//             RAIIWrapper<wgpu::RenderPipeline> renderPipeline =
-//                 device.createRenderPipeline(renderPipelineDesc);
+#pragma region pipeline for resources
+            wgpu::PipelineLayoutDescriptor pipelineLayoutDescriptor = wgpu::Default;
 
-//             // renderPassEncoder->setBindGroup()
-//             for (uint32_t i = 0; i < meshDrawData.vertexBuffers.size(); i++) {
-//                 renderPassEncoder->setVertexBuffer(
-//                     i, meshDrawData.vertexBuffers[i], 0,
-//                     meshDrawData.vertexBufferLayouts[i].arrayStride * meshDrawData.vertexCount);
-//             }
-//             renderPassEncoder->setPipeline(*renderPipeline);
-//             renderPassEncoder->draw(meshDrawData.vertexCount, 0, 1, 1);
-//         }
+            auto resourceGroupZeroEntry = resourceGroupZero.resourceGroupEntry();
+            auto materialResourceGroupEntry = mesh.material->resourceGroupEntry();
+
+            std::vector<WGPUBindGroupLayout> bindGroupLayouts = {resourceGroupZeroEntry.wgpuBindGroupLayout,
+                                                                 materialResourceGroupEntry.wgpuBindGroupLayout};
+            pipelineLayoutDescriptor.bindGroupLayoutCount = bindGroupLayouts.size();
+            pipelineLayoutDescriptor.bindGroupLayouts = bindGroupLayouts.data();
+
+            RAIIWrapper<wgpu::PipelineLayout> layout = device.createPipelineLayout(pipelineLayoutDescriptor);
+            renderPipelineDesc.layout = *layout;
+#pragma endregion
+
+            RAIIWrapper<wgpu::RenderPipeline> renderPipeline = device.createRenderPipeline(renderPipelineDesc);
+
+            renderPassEncoder->setBindGroup(0, resourceGroupZeroEntry.wgpuBindGroup,
+                                            generalUniforms.modelUniforms->stride() * meshIndex);
+
+            renderPassEncoder->setBindGroup(1, materialResourceGroupEntry.wgpuBindGroup, mesh.material->uniformOffset());
+
+            for (uint32_t i = 0; i < meshDrawData.vertexBuffers.size(); i++) {
+                renderPassEncoder->setVertexBuffer(i, meshDrawData.vertexBuffers[i], 0,
+                                                   meshDrawData.vertexBufferLayouts[i].arrayStride * meshDrawData.vertexCount);
+            }
+            renderPassEncoder->setPipeline(*renderPipeline);
+            renderPassEncoder->draw(meshDrawData.vertexCount, 1, 0, 0);
+
+            meshIndex++;
+        }
 #pragma endregion
 
         renderPassEncoder->end();

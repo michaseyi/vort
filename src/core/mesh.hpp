@@ -4,7 +4,7 @@
 #include "cpu_mesh.hpp"
 #include "geometry.hpp"
 #include "src/math/math.hpp"
-#include "src/renderer/material.hpp"
+#include "src/renderer/materials/material.hpp"
 #include "src/renderer/wgpu_mesh.hpp"
 
 struct VertexData {
@@ -17,7 +17,9 @@ class Mesh {
 public:
     Mesh() = default;
 
-    Mesh(Geometry* tGeometry, Material* tMaterial) : mGeometry(tGeometry), mMaterial(tMaterial) {
+    Mesh(Geometry* tGeometry, Material* tMaterial) : geometry(tGeometry), material(tMaterial) {
+        initializeShader();
+
         mCPUMesh.request_vertex_normals();
         mCPUMesh.request_vertex_texcoords2D();
         mCPUMesh.request_face_normals();
@@ -37,6 +39,19 @@ public:
         updateGPUMesh();
     }
 
+    void shadeSmooth() {
+        if (!mShadedSmooth) {
+            mShadedSmooth = true;
+            mDirty = true;
+        }
+    }
+    void shadeNormal() {
+        if (mShadedSmooth) {
+            mShadedSmooth = false;
+            mDirty = true;
+        }
+    }
+
     void updateGPUMesh() {
         if (mDirty) {
             std::vector<VertexData> data;
@@ -49,6 +64,10 @@ public:
                 for (auto vertex : face.vertices()) {
                     auto point = mCPUMesh.point(vertex);
                     auto texCoord = mCPUMesh.texcoord2D(vertex);
+
+                    if (mShadedSmooth) {
+                        normal = mCPUMesh.normal(vertex);
+                    }
 
                     data.push_back(VertexData{.position = {point[0], point[1], point[2]},
                                               .normal = {normal[0], normal[1], normal[2]},
@@ -68,13 +87,28 @@ public:
         data.indexBuffer = *mGPUMesh.mIndexBuffer;
         data.vertexBufferLayouts = std::vector{mGPUMesh.description()};
         data.vertexCount = mCPUMesh.n_faces() * 3;
+        data.vertexShader = mMeshShader->shaderModule;
+        data.vertexShaderEntry = "vs_main";
         return data;
     }
 
-private:
+public:
+    std::unique_ptr<Material> material;
+    std::unique_ptr<Geometry> geometry;
     CPUMesh mCPUMesh;
-    std::unique_ptr<Geometry> mGeometry;
-    std::unique_ptr<Material> mMaterial;
     WGPUMesh mGPUMesh;
+
+private:
+    inline static std::unique_ptr<Shader> mMeshShader;
+    inline static bool mInitialized = false;
     bool mDirty = true;
+    bool mValid = true;
+    bool mShadedSmooth = false;
+
+    void initializeShader() {
+        if (!mInitialized) {
+            mMeshShader.reset(new Shader("mesh.wgsl"));
+            mInitialized = true;
+        }
+    }
 };

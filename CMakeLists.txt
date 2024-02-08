@@ -28,6 +28,10 @@ if (NOT EMSCRIPTEN)
 add_subdirectory(external/webgpu)
 endif()
 
+if (EMSCRIPTEN)
+add_subdirectory(src/bindings)
+endif()
+
 add_subdirectory(external/glfw3webgpu)
 add_subdirectory(external/OpenMesh)
 
@@ -44,9 +48,11 @@ target_link_libraries(Vort PRIVATE  glfw3webgpu vort-ecs vort-core vort-renderer
 if(NOT EMSCRIPTEN)
    target_link_libraries(Vort PRIVATE  webgpu glfw xcb X11 X11-xcb)
 else()
-    target_link_options(Vort PRIVATE -sUSE_GLFW=3 -sUSE_WEBGPU -sASYNCIFY -sFILESYSTEM=0 -sSTB_IMAGE=1)
+    target_link_options(Vort PRIVATE -sUSE_GLFW=3 -sUSE_WEBGPU -sASYNCIFY -sFILESYSTEM=0 -sSTB_IMAGE=1 -sALLOW_MEMORY_GROWTH -sENVIRONMENT=web  -sMALLOC=emmalloc -lembind  -sEXPORTED_RUNTIME_METHODS=[UTF8ToString])
+    
+    target_link_libraries(Vort PRIVATE  vort-bindings)
     set_target_properties(Vort PROPERTIES SUFFIX ".html")
     
-    # target_link_options(App PRIVATE -sUSE_GLFW=3 -sUSE_WEBGPU  -sMODULARIZIE -sALLOW_MEMORY_GROWTH -sASYNCIFY -sFETCH  -sENVIRONMENT=web -sEXPORT_ES6=1 -lembind -sFILESYSTEM=0 -sMALLOC=emmalloc)
-    # set_target_properties(App PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/vort-editor/src/emscripten)
+    # target_link_options(Vort PRIVATE -sUSE_GLFW=3 -sUSE_WEBGPU -sASYNCIFY -sFILESYSTEM=0 -sSTB_IMAGE=1 -sALLOW_MEMORY_GROWTH -sENVIRONMENT=web  -sMALLOC=emmalloc -lembind -sEXPORT_NAME="Vort" -sMODULARIZE -sEXPORTED_RUNTIME_METHODS=[UTF8ToString])
+    # set_target_properties(Vort PROPERTIES RUNTIME_OUTPUT_DIRECTORY /home/michaseyi/Projects/vort-editor/public)
 endif()

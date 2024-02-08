@@ -5,7 +5,6 @@
 #if defined(EMSCRIPTEN)
 #include <emscripten/emscripten.h>
 
-#include "javascript_bindings.hpp"
 #endif
 
 #include <set>
@@ -274,6 +273,15 @@ bool Entities::hasComponents(EntityID entityID) {
 }
 
 #else
+std::string& Entities::getName(EntityID entityID) {
+    assert(mEntities.find(entityID) != mEntities.end() && "Entity does not exists in this world.");
+    return mEntities[entityID].name;
+}
+
+EntityInterface Entities::getInterface(EntityID entityID) {
+    assert(mEntities.find(entityID) != mEntities.end() && "Entity does not exists in this world.");
+    return mEntities[entityID].interface;
+}
 
 Entities::Entities() {
     mArchtypes.put(Entities::VOID_ARCHTYPE_HASH, ArchTypeStorage{});
@@ -281,12 +289,14 @@ Entities::Entities() {
     setGlobal(AppState{.initialized = false, .initializationStage = "Creating World", .running = true});
 };
 
-EntityID Entities::newEntity(EntityID parentID) {
+EntityID Entities::newEntity(std::string name, EntityInterface interface, EntityID parentID) {
+    assert(mNameIndex.find(name) == mNameIndex.end());
+
     mEntityCount++;
 
     EntityID newEntityID;
 
-    if (mReusableEntityIDs.size() > 1) {
+    if (mReusableEntityIDs.size() > 0) {
         newEntityID = *mReusableEntityIDs.begin();
 
         mReusableEntityIDs.erase(newEntityID);
@@ -296,7 +306,9 @@ EntityID Entities::newEntity(EntityID parentID) {
 
     auto voidArchType = mArchtypes.get(Entities::VOID_ARCHTYPE_HASH);
     auto entityRowIndex = voidArchType->newRow(newEntityID);
-    mEntities[newEntityID] = {.archtypeIndex = 0, .rowIndex = entityRowIndex};
+    mEntities[newEntityID] = {.archtypeIndex = 0, .rowIndex = entityRowIndex, .name = name, .interface = interface};
+
+    mNameIndex[name] = newEntityID;
 
     mChildrenMap[parentID].push_back(newEntityID);
 
@@ -394,6 +406,7 @@ void Entities::_removeEntity(EntityID entityID, bool removeFromParent) {
 
         parentChildren.erase(entityIterInParent);
     }
+    mNameIndex.erase(entityPtr.name);
     mEntities.erase(entityID);
     mChildrenMap.erase(entityID);
     mParentMap.erase(entityID);

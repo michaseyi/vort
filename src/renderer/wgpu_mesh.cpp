@@ -51,7 +51,7 @@ void WGPUMesh::allocateIndexBuffer(size_t tSize) {
     mIndexBuffer = context.getDevice().createBuffer(indexBufferDesc);
 }
 void WGPUMesh::allocateVertexBuffer(size_t tSize) {
-    if (*mVertexBuffer && mVertexBuffer->getSize() != tSize) {
+    if (*mVertexBuffer && mVertexBuffer->getSize() == tSize) {
         return;
     }
 

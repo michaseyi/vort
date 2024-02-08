@@ -5,7 +5,9 @@
 
 class Command {
 public:
-    void fill(Entities* world) { mWorld = world; }
+    void fill(Entities* world) {
+        mWorld = world;
+    }
 
     template <typename... T>
     Query<T...> query() {
@@ -13,24 +15,6 @@ public:
 
         result.fill(mWorld);
         return result;
-    }
-
-    template <typename... T>
-    EntityID spawn(T... args) {
-        assert(mWorld);
-
-        auto entity = mWorld->newEntity();
-        mWorld->setComponents<T...>(entity, std::move(args)...);
-        return entity;
-    }
-
-    template <typename... T>
-    EntityID spawn(EntityID parent, T... args) {
-        assert(mWorld);
-
-        auto entity = mWorld->newEntity(parent);
-        mWorld->setComponents(entity, std::move(args)...);
-        return entity;
     }
 
     template <typename... T>

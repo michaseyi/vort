@@ -8,25 +8,8 @@
         float y;                                                      \
         float z;                                                      \
         componentName() = default;                                    \
-        componentName(float x, float y, float z) : x(x), y(y), z(z) { \
+        componentName(float v) : componentName(math::vec3(v)) {       \
         }                                                             \
-        componentName(math::vec3 v) {                                 \
-            x = v.x;                                                  \
-            y = v.y;                                                  \
-            z = v.z;                                                  \
-        }                                                             \
-                                                                      \
-        operator math::vec3() {                                       \
-            return math::vec3(x, y, z);                               \
-        }                                                             \
-    }
-
-#define VECTOR3_COMPONENT(componentName)                              \
-    struct componentName {                                            \
-        float x;                                                      \
-        float y;                                                      \
-        float z;                                                      \
-        componentName() = default;                                    \
         componentName(float x, float y, float z) : x(x), y(y), z(z) { \
         }                                                             \
         componentName(math::vec3 v) {                                 \
@@ -50,16 +33,15 @@ struct Orientation {
     float z;
     float w;
 
-    Orientation(math::quat v) : x(v.x), y(v.y), z(v.z), w(v.w) {
+    Orientation() : Orientation(math::angleAxis(0.0f, math::vec3(1.0f, 0.0f, 0.0f))) {
     }
 
-    Orientation(float w, float x, float y, float z) : x(x), y(y), z(z), w(w) {
+    Orientation(math::quat v) : x(v.x), y(v.y), z(v.z), w(v.w) {
     }
 
     operator math::quat() {
         return math::quat(w, x, y, z);
     }
-    Orientation() = default;
 };
 
 struct RenderMode {

@@ -7,7 +7,6 @@ cmake_minimum_required(VERSION 3.3.0 FATAL_ERROR)
 
 # enable_testing()
 
-
 project (OpenMesh 
          VERSION 11.0.0
          LANGUAGES C CXX ) 
