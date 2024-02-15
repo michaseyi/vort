@@ -17,7 +17,8 @@ class Mesh {
 public:
     Mesh() = default;
 
-    Mesh(Geometry* tGeometry, Material* tMaterial) : geometry(tGeometry), material(tMaterial) {
+    Mesh(Geometry* tGeometry, Material* tMaterial, uint32_t tShaderIndex = 0)
+        : geometry(tGeometry), material(tMaterial), mActiveShaderIndex(tShaderIndex) {
         initializeShader();
 
         mCPUMesh.request_vertex_normals();
@@ -87,7 +88,7 @@ public:
         data.indexBuffer = *mGPUMesh.mIndexBuffer;
         data.vertexBufferLayouts = std::vector{mGPUMesh.description()};
         data.vertexCount = mCPUMesh.n_faces() * 3;
-        data.vertexShader = mMeshShader->shaderModule;
+        data.vertexShader = mShaders[mActiveShaderIndex].shaderModule;
         data.vertexShaderEntry = "vs_main";
         return data;
     }
@@ -99,15 +100,16 @@ public:
     WGPUMesh mGPUMesh;
 
 private:
-    inline static std::unique_ptr<Shader> mMeshShader;
+    inline static std::vector<Shader> mShaders;
     inline static bool mInitialized = false;
     bool mDirty = true;
     bool mValid = true;
     bool mShadedSmooth = false;
-
+    uint32_t mActiveShaderIndex;
     void initializeShader() {
         if (!mInitialized) {
-            mMeshShader.reset(new Shader("mesh.wgsl"));
+            mShaders.emplace_back("mesh.wgsl");
+            mShaders.emplace_back("screen_space_mesh.wgsl");
             mInitialized = true;
         }
     }

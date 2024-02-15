@@ -14,7 +14,6 @@ BasicMaterial::BasicMaterial(BasicMaterialProps tProps) {
     basicMaterialUniform->increment();
 }
 
-
 wgpu::ShaderModule BasicMaterial::shader() {
     return *basicMaterialShader->shaderModule;
 }
@@ -31,11 +30,16 @@ void BasicMaterial::setColor(math::vec3 tColor) {
 }
 
 void BasicMaterial::update(uint32_t tIndex) {
-    if (tIndex <= mCurrentIndex) {
-        mCurrentIndex = 0;
-    } else {
+    if (mIncrementOnNext) {
         mCurrentIndex++;
     }
+    if (tIndex < mLastSetIndex) {
+        mCurrentIndex = 0;
+    }
+
+    mIncrementOnNext = true;
+
+    mLastSetIndex = tIndex + 1;
     BasicMaterialUniforms uniform{};
 
     uniform.base_color = mProps.color;

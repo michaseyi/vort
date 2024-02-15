@@ -55,24 +55,7 @@ struct SpotLight {
     vec3 attenuation_coefficients;  // at byte offset 48
     float _pad0;
 };
-struct CommonUniforms {
-    mat4x4 view_projection_matrix;  // at byte offset 0
-    float time;                     // at byte offset 64
-    float _pad0;
-    uvec2 resolution;                            // at byte offset 72
-    std::array<AmbientLight, 5> ambient_lights;  // at byte offset 80
-    uint32_t ambient_light_count;                // at byte offset 160
-    float _pad1[3];
-    std::array<PointLight, 5> point_lights;  // at byte offset 176
-    uint32_t point_light_count;              // at byte offset 416
-    float _pad2[3];
-    std::array<DirectionalLight, 5> directional_lights;  // at byte offset 432
-    uint32_t directional_light_count;                    // at byte offset 672
-    float _pad3[3];
-    std::array<SpotLight, 5> spot_lights;  // at byte offset 688
-    uint32_t spot_light_count;             // at byte offset 1008
-    float _pad4[3];
-};
+
 struct BasicMaterialUniforms {
     vec3 base_color;      // at byte offset 0
     float alpha;          // at byte offset 12
@@ -84,4 +67,35 @@ struct BasicMaterialUniforms {
 struct ModelUniforms {
     mat4x4 model_matrix;   // at byte offset 0
     mat3x4 normal_matrix;  // at byte offset 64
+};
+
+struct Camera {
+    vec3 position;  // at byte offset 0
+    float _pad0;
+    mat4x4 view_projection_matrix;  // at byte offset 16
+    float fov;                      // at byte offset 80
+    float aspect;                   // at byte offset 84
+    float near;                     // at byte offset 88
+    float far;                      // at byte offset 92
+    float zoom;                     // at byte offset 96
+    float _pad1[3];
+};
+
+struct CommonUniforms {
+    Camera camera;  // at byte offset 0
+    float time;     // at byte offset 112
+    float _pad0;
+    uvec2 resolution;                            // at byte offset 120
+    std::array<AmbientLight, 5> ambient_lights;  // at byte offset 128
+    uint32_t ambient_light_count;                // at byte offset 208
+    float _pad1[3];
+    std::array<PointLight, 5> point_lights;  // at byte offset 224
+    uint32_t point_light_count;              // at byte offset 464
+    float _pad2[3];
+    std::array<DirectionalLight, 5> directional_lights;  // at byte offset 480
+    uint32_t directional_light_count;                    // at byte offset 720
+    float _pad3[3];
+    std::array<SpotLight, 5> spot_lights;  // at byte offset 736
+    uint32_t spot_light_count;             // at byte offset 1056
+    float _pad4[3];
 };

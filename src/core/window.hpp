@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 
+#include "event_emitter.hpp"
 #include "src/renderer/wgpu_context.hpp"
 #include "src/utils/raii.hpp"
 
@@ -16,7 +17,7 @@ struct RAIIDeleter<GLFWwindow*> {
     }
 };
 
-class Window {
+class Window : public EventEmitter {
 public:
     Window();
 
@@ -26,6 +27,8 @@ public:
 
     void processEvents();
 
+    void updateUserPointer();
+
     void waitEvents();
 
     bool isOpen();
@@ -34,9 +37,17 @@ public:
 
     int32_t height();
 
+    void updateSize();
+
     operator GLFWwindow*();
 
     operator bool();
+
+    double prevMouseX = 0;
+    double prevMouseY = 0;
+
+private:
+    void initEventHandlers();
 
 private:
     int32_t mWidth = 0;

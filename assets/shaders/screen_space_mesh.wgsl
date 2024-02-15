@@ -28,6 +28,19 @@ fn vs_main(vert: Vertex) -> VSOutput {
     out.position = (model.model_matrix * vec4(vert.position, 1.0)).xyz;
     out.normal = model.normal_matrix * vert.normal;
     out.out_position = common_uniforms.camera.view_projection_matrix * vec4(out.position, 1.0);
-    out.uv = vert.uv;
+
+    out.out_position.z /= 1000.0;
+    out.out_position.w = 1.0;
+
+    let a: f32 = (sin(radians(common_uniforms.camera.fov / 2)) * common_uniforms.camera.near) / sin(radians(180.0 - 90.0 - (common_uniforms.camera.fov / 2)));
+    let b: f32 = (sin(radians((common_uniforms.camera.fov + common_uniforms.camera.zoom) / 2)) * common_uniforms.camera.near) / sin(radians(180.0 - 90.0 - ((common_uniforms.camera.fov + common_uniforms.camera.zoom) / 2)));
+
+    var ratio = b / a;
+
+    ratio /= 10.0;
+
+    out.out_position.x *= ratio;
+    out.out_position.y *= ratio;
+
     return out;
 }

@@ -1,6 +1,7 @@
 #if defined(EMSCRIPTEN)
 #include "ecs_binding.hpp"
 
+#include "src/core/camera_controller.hpp"
 #include "src/core/components.hpp"
 #include "src/renderer/materials/basic_material.hpp"
 
@@ -57,8 +58,9 @@ EntityID ECSBinding::entitiesCreateCylinderMesh(EntityID parentID) {
 EntityID ECSBinding::entitiesCreateConeMesh(EntityID parentID) {
     auto newEntityId = mWorld->newEntity("Cone0", EntityInterface::Mesh, parentID);
 
-    mWorld->setComponents(newEntityId, Position(0.0f), Scale(1.0f), Orientation(),
-                          Mesh(new Cone(1.0f, 3.0f, 30), new BasicMaterial(BasicMaterialProps{.color = {0.5f, 0.5f, 0.5f}})));
+    mWorld->setComponents(
+        newEntityId, Position(0.0f), Scale(1.0f), Orientation(),
+        Mesh(new Cone(1.0f, 3.0f, 30, 0.0f), new BasicMaterial(BasicMaterialProps{.color = {0.5f, 0.5f, 0.5f}})));
     return newEntityId;
 }
 
@@ -112,6 +114,15 @@ uintptr_t ECSBinding::entityGetName(EntityID entityID) {
     return reinterpret_cast<uintptr_t>(name.c_str());
 }
 
+void ECSBinding::editorCameraZoom(float zoomChange) {
+    auto [editorCameraController] = mWorld->getGlobal<CameraController>();
+    editorCameraController.zoom(*mWorld, zoomChange);
+}
+
+void ECSBinding::editorCameraRotate(float pitchAngle, float yawAngle) {
+    auto [editorCameraController] = mWorld->getGlobal<CameraController>();
+    editorCameraController.rotate(*mWorld, pitchAngle, yawAngle);
+}
 EMSCRIPTEN_BINDINGS(Vort) {
     emscripten::function("entityGetChildren", ECSBinding::entityGetChildren);
     emscripten::function("entitiesRemoveEntity", ECSBinding::entitiesRemoveEntity);
@@ -128,6 +139,8 @@ EMSCRIPTEN_BINDINGS(Vort) {
     emscripten::function("entityGetName", ECSBinding::entityGetName);
     emscripten::function("meshShadeSmooth", ECSBinding::meshShadeSmooth);
     emscripten::function("meshShadeNormal", ECSBinding::meshShadeNormal);
+    emscripten::function("editorCameraZoom", ECSBinding::editorCameraZoom);
+    emscripten::function("editorCameraRotate", ECSBinding::editorCameraRotate);
     emscripten::register_vector<EntityID>("vector<EntityID>");
 }
 

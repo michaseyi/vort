@@ -19,8 +19,7 @@ class Query<Columns<T...>, Tags<U...>> {
     static_assert(UniqueTypes<U...>::value);
 
 public:
-    static inline std::vector<std::type_index> queryComponents = {std::type_index(typeid(T))...,
-                                                                  std::type_index(typeid(U))...};
+    static inline std::vector<std::type_index> queryComponents = {std::type_index(typeid(T))..., std::type_index(typeid(U))...};
 
     void fill(Entities *world) {
         mWorld = world;
@@ -51,8 +50,7 @@ public:
               mCurrentArchtypeIndex(currentArchtypeIndex),
               mCurrentRowIndexInArchtype(currentRowIndex),
               mEnded(ended) {
-            std::vector<std::type_index> queryComponents = {std::type_index(typeid(T))...,
-                                                            std::type_index(typeid(U))...};
+            std::vector<std::type_index> queryComponents = {std::type_index(typeid(T))..., std::type_index(typeid(U))...};
         }
 
         Iterator &operator++(int) {
@@ -61,6 +59,13 @@ public:
 
         Iterator &operator++() {
             return next();
+        }
+
+        EntityID currentEntityID() {
+            assert(!mEnded);
+
+            auto &archtype = mWorld->archtypes()[mCurrentArchtypeIndex];
+            return archtype.entityIDFromRowIndex(mCurrentRowIndexInArchtype);
         }
 
         inline Iterator &next() {
@@ -115,6 +120,10 @@ public:
     Iterator end() {
         return Iterator{mWorld, 0, 0, true};
     };
+
+    auto single() {
+        return *begin();
+    }
 
 private:
     Entities *mWorld;

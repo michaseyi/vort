@@ -1,6 +1,7 @@
 #pragma once
 #include <limits>
 #include <sstream>
+#include <string>
 
 #include "cpu_mesh.hpp"
 #include "src/math/math.hpp"
@@ -185,15 +186,33 @@ private:
     float mRadius = 1.0f;
 };
 
-class Cone : public Geometry {
+class CombinedGeometry : public Geometry {
 public:
-    Cone(float tRadius, float tHeight, uint32_t tSegments) : mRadius(tRadius), mHeight(tHeight), mSegments(tSegments) {
+    CombinedGeometry(Geometry *a, Geometry *b) {
+        geometries.emplace_back(a);
+        geometries.emplace_back(b);
     }
 
     void operator()(CPUMesh &tMesh) override {
-        auto coneTop = tMesh.add_vertex(CPUMesh::Point(0.0f, mHeight, 0.0f));
+        for (auto &geometry : geometries) {
+            (*geometry)(tMesh);
+        }
+    }
 
-        auto coneBottom = tMesh.add_vertex(CPUMesh::Point(0.0f));
+private:
+    std::vector<std::unique_ptr<Geometry>> geometries;
+};
+
+class Cone : public Geometry {
+public:
+    Cone(float tRadius, float tHeight, uint32_t tSegments, float tOffset)
+        : mRadius(tRadius), mHeight(tHeight), mSegments(tSegments), mOffset(tOffset) {
+    }
+
+    void operator()(CPUMesh &tMesh) override {
+        auto coneTop = tMesh.add_vertex(CPUMesh::Point(0.0f, mOffset + mHeight, 0.0f));
+
+        auto coneBottom = tMesh.add_vertex(CPUMesh::Point(0.0f, mOffset, 0.0f));
 
         auto twoPi = math::two_pi<float>();
 
@@ -201,10 +220,10 @@ public:
 
         for (uint32_t i = 0; i < mSegments; i++) {
             float t = i * (twoPi / mSegments);
-            float x = math::cos(t);
-            float z = math::sin(t);
+            float x = mRadius * math::cos(t);
+            float z = mRadius * math::sin(t);
 
-            circleVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, 0.0f, z)));
+            circleVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, mOffset, z)));
         }
 
         std::vector<CPUMesh::VertexHandle> faceVhandles;
@@ -229,6 +248,7 @@ private:
     float mRadius;
     float mHeight;
     uint32_t mSegments;
+    float mOffset;
 };
 
 class Cylinder : public Geometry {
@@ -244,29 +264,27 @@ public:
         for (uint32_t i = 0; i < mSegments; ++i) {
             float t = i * (2 * PI) / mSegments;
             float x = mRadius * math::cos(t);
-            float y = mRadius * math::sin(t);
+            float z = mRadius * math::sin(t);
 
-            bottomVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, y, -mHeight / 2.0f)));
-            topVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, y, mHeight / 2.0f)));
+            bottomVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, 0, z)));
+            topVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, mHeight, z)));
         }
 
-        CPUMesh::VertexHandle bottomCenter = tMesh.add_vertex(CPUMesh::Point(0, 0, -mHeight / 2.0f));
-        CPUMesh::VertexHandle topCenter = tMesh.add_vertex(CPUMesh::Point(0, 0, mHeight / 2.0f));
+        CPUMesh::VertexHandle bottomCenter = tMesh.add_vertex(CPUMesh::Point(0, 0, 0));
+        CPUMesh::VertexHandle topCenter = tMesh.add_vertex(CPUMesh::Point(0, mHeight, 0));
         // Create faces for the top and bottom circles
         for (uint32_t i = 0; i < mSegments; ++i) {
             // Bottom face
-            tMesh.add_face(bottomVhandles[i], bottomCenter, bottomVhandles[(i + 1) % mSegments]);
+            tMesh.add_face(bottomVhandles[i], bottomVhandles[(i + 1) % mSegments], bottomCenter);
             // Top face
-            tMesh.add_face(topVhandles[i], topVhandles[(i + 1) % mSegments], topCenter);
+            tMesh.add_face(topVhandles[i], topCenter, topVhandles[(i + 1) % mSegments]);
         }
 
         // Create faces for the sides of the cylinder
         for (uint32_t i = 0; i < mSegments; ++i) {
-            // First triangle
-            tMesh.add_face(bottomVhandles[i], bottomVhandles[(i + 1) % mSegments], topVhandles[i]);
+            tMesh.add_face(bottomVhandles[i], topVhandles[(i + 1) % mSegments], bottomVhandles[(i + 1) % mSegments]);
 
-            // Second triangle
-            tMesh.add_face(bottomVhandles[(i + 1) % mSegments], topVhandles[(i + 1) % mSegments], topVhandles[i]);
+            tMesh.add_face(bottomVhandles[i], topVhandles[i], topVhandles[(i + 1) % mSegments]);
         }
     }
 

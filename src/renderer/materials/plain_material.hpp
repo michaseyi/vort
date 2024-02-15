@@ -5,38 +5,44 @@
 #include "src/core/data_structs.hpp"
 #include "src/math/math.hpp"
 
-struct BasicMaterialProps {
+struct PlainMaterialUniform {
+    math::vec4 color;
+};
+
+struct PlainMaterialProps {
     math::vec3 color;
 };
 
-class BasicMaterial : public Material {
+class PlainMaterial : public Material {
 public:
-    BasicMaterial(BasicMaterialProps tProps);
+    PlainMaterial(PlainMaterialProps tProps);
 
     void update(uint32_t tIndex) override;
 
     void setColor(math::vec3 tColor) override;
 
-    ~BasicMaterial();
+    ~PlainMaterial();
 
     uint32_t uniformOffset() override;
-    
+
     wgpu::ShaderModule shader() override;
 
     ResourceGroupEntry resourceGroupEntry() override;
 
-    inline static std::shared_ptr<Uniform> basicMaterialUniform;
-    inline static std::unique_ptr<Shader> basicMaterialShader;
+    inline static std::shared_ptr<Uniform> plainMaterialUniform;
+    inline static std::unique_ptr<Shader> plainMaterialShader;
 
-    BasicMaterial(BasicMaterial &&);
-    BasicMaterial& operator=(BasicMaterial &&);
+    PlainMaterial(PlainMaterial &&);
+    PlainMaterial &operator=(PlainMaterial &&);
+
 private:
     inline static bool mInitialized;
     inline static uint64_t mCurrentIndex = 0;
     inline static uint64_t mLastSetIndex = 0;
+
     inline static bool mIncrementOnNext = false;
     ResourceGroup mResourceGroup;
 
     bool mValid = true;
-    BasicMaterialProps mProps;
+    PlainMaterialProps mProps;
 };

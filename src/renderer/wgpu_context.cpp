@@ -5,6 +5,7 @@
 
 #include "raii_deleters.hpp"
 #include "src/core/window.hpp"
+#include "src/core/window_events.hpp"
 
 using namespace wgpu;
 
@@ -149,30 +150,26 @@ WGPUContext::WGPUContext(Window* tWindow) {
 
     mDepthStencilTexture = createDepthStencilTexture(tWindow->width(), tWindow->height());
 
-    glfwSetWindowUserPointer(*tWindow, this);
-    glfwSetFramebufferSizeCallback(*tWindow, [](GLFWwindow* window, int width, int height) {
-        auto& a = *reinterpret_cast<WGPUContext*>(glfwGetWindowUserPointer(window));
-
-        a.onWindowResize(width, height);
+    tWindow->registerListener<WindowResize>([](const WindowResize* event) {
+        auto& context = WGPUContext::getContext();
+        context.onWindowResize(event->width, event->height);
     });
 
 #if !defined(EMSCRIPTEN)
-    static auto deviceLostCallbackHandle =
-        mDevice->setDeviceLostCallback([](DeviceLostReason reason, const char* message) {
-            std::cout << "Device lost: reason " << reason;
-            if (message) {
-                std::cout << " (" << message << ")";
-            }
-            std::cout << std::endl;
-        });
+    static auto deviceLostCallbackHandle = mDevice->setDeviceLostCallback([](DeviceLostReason reason, const char* message) {
+        std::cout << "Device lost: reason " << reason;
+        if (message) {
+            std::cout << " (" << message << ")";
+        }
+        std::cout << std::endl;
+    });
 #endif
 
-    static auto uncapturedErrorCallbackHandle =
-        mDevice->setUncapturedErrorCallback([](ErrorType errorType, const char* message) {
-            std::cout << "Uncaptured device error: type " << errorType;
-            if (message) {
-                std::cout << " (" << message << ")";
-            }
-            std::cout << std::endl;
-        });
+    static auto uncapturedErrorCallbackHandle = mDevice->setUncapturedErrorCallback([](ErrorType errorType, const char* message) {
+        std::cout << "Uncaptured device error: type " << errorType;
+        if (message) {
+            std::cout << " (" << message << ")";
+        }
+        std::cout << std::endl;
+    });
 }

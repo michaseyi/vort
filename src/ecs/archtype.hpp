@@ -66,6 +66,7 @@ public:
     template <typename T>
     T& getRow(uint32_t rowIndex);
 
+    EntityID entityIDFromRowIndex(uint32_t rowIndex);
 private:
     u_int64_t mHash = 0;
     std::vector<EntityID> mEntityIDs;

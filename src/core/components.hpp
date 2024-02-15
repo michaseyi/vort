@@ -1,4 +1,7 @@
 #pragma once
+#include <memory>
+
+#include "bounding_volume.hpp"
 #include "mesh.hpp"
 #include "src/math/math.hpp"
 
@@ -40,7 +43,12 @@ struct Orientation {
     }
 
     operator math::quat() {
-        return math::quat(w, x, y, z);
+        math::quat res;
+        res.w = w;
+        res.x = x;
+        res.y = y;
+        res.z = z;
+        return res;
     }
 };
 
@@ -63,4 +71,22 @@ struct CameraSettings {
     float aspectRatio;
     float near;
     float far;
+    math::vec3 reference{0.0f};
+    float zoom = 0.0f;
+    float zoomSensitivity = 1 / 60.0f;
+    float rotationSensitivity = 1 / 120.0f;
+};
+
+struct View {
+    math::mat4 projectionMatrix;
+    math::mat4 viewMatrix;
+};
+
+struct Interactable {
+    Interactable() = default;
+    Interactable(BoundingVolume *tBoundingVolume) : boundingVolume(tBoundingVolume) {
+    }
+    std::unique_ptr<BoundingVolume> boundingVolume;
+
+    bool hovered;
 };

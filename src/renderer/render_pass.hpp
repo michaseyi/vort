@@ -111,34 +111,19 @@ struct DefaultRenderPass : public Pass {
 
 #pragma region setting common uniforms
 
-        auto [cameraSettings, cameraPosition, cameraOrientation] =
-            *tCommand.query<Columns<CameraSettings, Position, Orientation>, Tags<>>().begin();
-
-        float time = glfwGetTime();
-
-        auto orientation = math::angleAxis(time, math::vec3(0.0f, 1.0f, 0.0f));
-
-        math::vec3 xDirection = math::vec3(1.0f, 0.0f, 0.0f);
-        math::vec3 yDirection = math::vec3(0.0f, 1.0f, 0.0f);
-
-        auto front = math::normalize(static_cast<math::quat>(orientation) * xDirection);
-        auto up = math::normalize(static_cast<math::quat>(orientation) * yDirection);
-
-        auto viewMatrix = math::lookAt(math::vec3(0.0f), front, up) *
-                          math::translate(math::mat4(1.0f), -static_cast<math::vec3>(cameraPosition));
-
-        // math::mat4 viewMatrix =
-        //     math::lookAt(static_cast<math::vec3>(cameraPosition), math::vec3(0.0f), math::vec3(0.0f, 1.0f, 0.0f));
-
-        math::mat4 projectionMatrix = math::perspectiveZO(math::radians(cameraSettings.fov), cameraSettings.aspectRatio,
-                                                          cameraSettings.near, cameraSettings.far);
+        auto [cameraPosition, cameraSettings, view] = tCommand.query<Columns<Position, CameraSettings, View>, Tags<>>().single();
 
         CommonUniforms common{};
-        common.view_projection_matrix = projectionMatrix * viewMatrix;
+        common.camera.view_projection_matrix = view.projectionMatrix * view.viewMatrix;
+        common.camera.aspect = cameraSettings.aspectRatio;
+        common.camera.far = cameraSettings.far;
+        common.camera.near = cameraSettings.near;
+        common.camera.fov = cameraSettings.fov;
+        common.camera.position = cameraPosition;
+        common.camera.zoom = cameraSettings.zoom;
         common.resolution = math::uvec2(window.width(), window.height());
-
         // TODO: make a global time component and pull common.time from there
-        common.time = time;
+        common.time = glfwGetTime();
 
         for (auto [spotLight] : tCommand.query<Columns<SpotLight>, Tags<>>()) {
             assert(common.spot_light_count < 5 && "Maxiimum of 5 spotlight");
@@ -204,7 +189,7 @@ struct DefaultRenderPass : public Pass {
             fragmentState.module = mesh.material->shader();
             renderPipelineDesc.fragment = &fragmentState;
 
-            renderPipelineDesc.primitive.cullMode = wgpu::CullMode::Back;
+            renderPipelineDesc.primitive.cullMode = wgpu::CullMode::None;
             renderPipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
             renderPipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
 

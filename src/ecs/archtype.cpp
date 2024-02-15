@@ -90,13 +90,25 @@ u_int64_t ArchTypeStorage::computeHash(std::vector<std::type_index>& types) {
     return hash;
 }
 
-void ArchTypeStorage::computeHash() { mHash = computeHash(mComponentTypes); }
+void ArchTypeStorage::computeHash() {
+    mHash = computeHash(mComponentTypes);
+}
 
-void ArchTypeStorage::setHash(u_int64_t hash) { mHash = hash; }
+void ArchTypeStorage::setHash(u_int64_t hash) {
+    mHash = hash;
+}
 
-u_int64_t ArchTypeStorage::getHash() { return mHash; }
+u_int64_t ArchTypeStorage::getHash() {
+    return mHash;
+}
 
-std::vector<EntityID>& ArchTypeStorage::entities() { return mEntityIDs; }
+std::vector<EntityID>& ArchTypeStorage::entities() {
+    return mEntityIDs;
+}
+
+EntityID ArchTypeStorage::entityIDFromRowIndex(uint32_t rowIndex) {
+    return mEntityIDs[rowIndex];
+}
 
 void ArchTypeStorage::removeRow(uint32_t rowIndex) {
     assert(mEntityIDs.size() > rowIndex);
@@ -108,7 +120,9 @@ void ArchTypeStorage::removeRow(uint32_t rowIndex) {
     }
 }
 
-std::vector<std::type_index>& ArchTypeStorage::componentTypes() { return mComponentTypes; }
+std::vector<std::type_index>& ArchTypeStorage::componentTypes() {
+    return mComponentTypes;
+}
 
 ArchTypeStorage ArchTypeStorage::fromTypeIndex(std::vector<std::type_index>& types) {
     ArchTypeStorage archType;
@@ -144,7 +158,9 @@ ArchTypeStorage ArchTypeStorage::clone(std::vector<std::type_index>& types) {
     return storageClone;
 }
 
-ArrayHashMap<std::type_index, ErasedComponentStorage>& ArchTypeStorage::components() { return mComponents; }
+ArrayHashMap<std::type_index, ErasedComponentStorage>& ArchTypeStorage::components() {
+    return mComponents;
+}
 
 void ArchTypeStorage::addComponent(std::type_index type) {
     if (hasComponent(type)) {
@@ -162,5 +178,7 @@ void ArchTypeStorage::addComponent(std::type_index type, ErasedComponentStorage 
     mComponents.put(type, std::move(componenetStorage));
 }
 
-ErasedComponentStorage* ArchTypeStorage::getComponent(std::type_index& type) { return mComponents.get(type); }
+ErasedComponentStorage* ArchTypeStorage::getComponent(std::type_index& type) {
+    return mComponents.get(type);
+}
 #endif
