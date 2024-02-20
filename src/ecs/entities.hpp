@@ -15,10 +15,12 @@ template <typename... T>
 class Query;
 
 struct AppState {
+    char* initializationStage;
     bool initialized;
-    std::string initializationStage;
     bool running;
 };
+
+const int a = sizeof(AppState);
 
 // TODO: Temporary Entity ID solution. Replace with UUIDs;
 using EntityID = uint32_t;
@@ -43,7 +45,6 @@ enum class EntityInterface {
     Light,
     Scene,
 };
-
 
 class Entities {
 public:

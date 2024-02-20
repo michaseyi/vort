@@ -25,22 +25,23 @@ struct VSOutput {
 fn vs_main(vert: Vertex) -> VSOutput {
     var out: VSOutput;
 
+    let origin_z = (common_uniforms.camera.view_projection_matrix * model.model_matrix * vec4(0.0, 0.0, 0.0, 1.0)).z;
+
     out.position = (model.model_matrix * vec4(vert.position, 1.0)).xyz;
     out.normal = model.normal_matrix * vert.normal;
     out.out_position = common_uniforms.camera.view_projection_matrix * vec4(out.position, 1.0);
 
-    out.out_position.z /= 1000.0;
-    out.out_position.w = 1.0;
+    out.out_position.w /= origin_z;
 
-    let a: f32 = (sin(radians(common_uniforms.camera.fov / 2)) * common_uniforms.camera.near) / sin(radians(180.0 - 90.0 - (common_uniforms.camera.fov / 2)));
-    let b: f32 = (sin(radians((common_uniforms.camera.fov + common_uniforms.camera.zoom) / 2)) * common_uniforms.camera.near) / sin(radians(180.0 - 90.0 - ((common_uniforms.camera.fov + common_uniforms.camera.zoom) / 2)));
+    out.out_position /= out.out_position.w * 3.0;
 
-    var ratio = b / a;
+    out.out_position.z /= 1000;
 
-    ratio /= 10.0;
 
-    out.out_position.x *= ratio;
-    out.out_position.y *= ratio;
+
+
+    out.out_position.x *= (1 / f32(common_uniforms.resolution.y) / common_uniforms.camera.near * 7.0);
+    out.out_position.y *= (1 / f32(common_uniforms.resolution.y) / common_uniforms.camera.near * 7.0);
 
     return out;
 }

@@ -114,17 +114,23 @@ uintptr_t ECSBinding::entityGetName(EntityID entityID) {
     return reinterpret_cast<uintptr_t>(name.c_str());
 }
 
-void ECSBinding::editorCameraZoom(float zoomChange) {
+void ECSBinding::editorMoveCamera(float xChange, float yChange, float zChange) {
     auto [editorCameraController] = mWorld->getGlobal<CameraController>();
-    editorCameraController.zoom(*mWorld, zoomChange);
+    editorCameraController.move(*mWorld, xChange, yChange, zChange);
 }
 
-void ECSBinding::editorCameraRotate(float pitchAngle, float yawAngle) {
+uintptr_t ECSBinding::globalGetAppState() {
+    auto [appState] = mWorld->getGlobal<AppState>();
+    return reinterpret_cast<uintptr_t>(&appState);
+}
+
+void ECSBinding::editorRotateCamera(float pitchAngle, float yawAngle) {
     auto [editorCameraController] = mWorld->getGlobal<CameraController>();
     editorCameraController.rotate(*mWorld, pitchAngle, yawAngle);
 }
 EMSCRIPTEN_BINDINGS(Vort) {
-    emscripten::function("entityGetChildren", ECSBinding::entityGetChildren);
+    emscripten::function("globalGetAppState", ECSBinding::globalGetAppState);
+
     emscripten::function("entitiesRemoveEntity", ECSBinding::entitiesRemoveEntity);
     emscripten::function("entitiesCreateEntity", ECSBinding::entitiesCreateEntity);
     emscripten::function("entitiesCreateCubeMesh", ECSBinding::entitiesCreateCubeMesh);
@@ -132,15 +138,19 @@ EMSCRIPTEN_BINDINGS(Vort) {
     emscripten::function("entitiesCreateCylinderMesh", ECSBinding::entitiesCreateCylinderMesh);
     emscripten::function("entitiesCreatePlaneMesh", ECSBinding::entitiesCreatePlaneMesh);
     emscripten::function("entitiesCreateUVSphereMesh", ECSBinding::entitiesCreateUVSphereMesh);
+
     emscripten::function("entityGetPosition", ECSBinding::entityGetPosition);
+    emscripten::function("entityGetChildren", ECSBinding::entityGetChildren);
     emscripten::function("entityGetOrientation", ECSBinding::entityGetOrientation);
     emscripten::function("entityGetScale", ECSBinding::entityGetScale);
     emscripten::function("entityGetInterface", ECSBinding::entityGetInterface);
     emscripten::function("entityGetName", ECSBinding::entityGetName);
+
     emscripten::function("meshShadeSmooth", ECSBinding::meshShadeSmooth);
     emscripten::function("meshShadeNormal", ECSBinding::meshShadeNormal);
-    emscripten::function("editorCameraZoom", ECSBinding::editorCameraZoom);
-    emscripten::function("editorCameraRotate", ECSBinding::editorCameraRotate);
+
+    emscripten::function("editorMoveCamera", ECSBinding::editorMoveCamera);
+    emscripten::function("editorRotateCamera", ECSBinding::editorRotateCamera);
     emscripten::register_vector<EntityID>("vector<EntityID>");
 }
 

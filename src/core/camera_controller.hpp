@@ -83,16 +83,30 @@ public:
 
         orientation = math::normalize(yawRot * pitchRot * static_cast<math::quat>(orientation));
 
-        position = -math::length(static_cast<math::vec3>(position)) * (static_cast<math::quat>(orientation) * xDirection);
+        position = settings.reference + ((static_cast<math::quat>(orientation) * xDirection) *
+                                         -math::distance(static_cast<math::vec3>(position), settings.reference));
         updateView(tWorld);
     }
 
-    void zoom(World& tWorld, float zoomChange) {
-        auto [settings] = tWorld.getComponents<CameraSettings>(cameraID);
+    void move(World& tWorld, float xMovement, float yMovement, float zMovement) {
+        auto [settings, position, orientation] = tWorld.getComponents<CameraSettings, Position, Orientation>(cameraID);
 
-        // TODO: This should be reactive
-        settings.zoom += zoomChange * settings.zoomSensitivity;
-        settings.zoom = std::clamp(settings.zoom, -settings.fov + 1.0f, 179.0f - settings.fov);
+        auto up = math::normalize(static_cast<math::quat>(orientation) * yDirection);
+        auto side = math::normalize(static_cast<math::quat>(orientation) * zDirection);
+        auto front = math::normalize(static_cast<math::quat>(orientation) * xDirection);
+
+        auto translationMat = math::translate(math::mat4(1.0f), up * yMovement * settings.moveSensitivity);
+        translationMat = math::translate(translationMat, side * xMovement * settings.moveSensitivity);
+
+        position = math::vec3(position) - front * zMovement * settings.moveSensitivity;
+
+        if (math::dot(math::normalize(settings.reference - math::vec3(position)), front) < 0.0) {
+            position = settings.reference - (front * 0.01f);
+        }
+
+        position = math::vec3(translationMat * math::vec4(math::vec3(position), 1.0f));
+        settings.reference = math::vec3(translationMat * math::vec4(settings.reference, 1.0f));
+
         updateView(tWorld);
     }
 
@@ -108,7 +122,7 @@ public:
 
         // TODO: This should be reactive
         view.projectionMatrix =
-            math::perspectiveZO(math::radians(settings.fov + settings.zoom), settings.aspectRatio, settings.near, settings.far);
+            math::perspectiveZO(math::radians(settings.fov), settings.aspectRatio, settings.near, settings.far);
 
         updateLight(tWorld, position);
     }

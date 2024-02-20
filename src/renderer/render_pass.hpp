@@ -120,7 +120,6 @@ struct DefaultRenderPass : public Pass {
         common.camera.near = cameraSettings.near;
         common.camera.fov = cameraSettings.fov;
         common.camera.position = cameraPosition;
-        common.camera.zoom = cameraSettings.zoom;
         common.resolution = math::uvec2(window.width(), window.height());
         // TODO: make a global time component and pull common.time from there
         common.time = glfwGetTime();

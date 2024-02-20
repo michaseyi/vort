@@ -253,7 +253,8 @@ private:
 
 class Cylinder : public Geometry {
 public:
-    Cylinder(float tRadius, float tHeight, uint32_t tSegments) : mRadius(tRadius), mHeight(tHeight), mSegments(tSegments) {
+    Cylinder(float tRadius, float tHeight, uint32_t tSegments, float tHeightStart = 0.0f)
+        : mRadius(tRadius), mHeight(tHeight), mHeightStart(tHeightStart), mSegments(tSegments) {
     }
 
     void operator()(CPUMesh &tMesh) override {
@@ -266,12 +267,12 @@ public:
             float x = mRadius * math::cos(t);
             float z = mRadius * math::sin(t);
 
-            bottomVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, 0, z)));
-            topVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, mHeight, z)));
+            bottomVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, mHeightStart, z)));
+            topVhandles.push_back(tMesh.add_vertex(CPUMesh::Point(x, mHeight + mHeightStart, z)));
         }
 
-        CPUMesh::VertexHandle bottomCenter = tMesh.add_vertex(CPUMesh::Point(0, 0, 0));
-        CPUMesh::VertexHandle topCenter = tMesh.add_vertex(CPUMesh::Point(0, mHeight, 0));
+        CPUMesh::VertexHandle bottomCenter = tMesh.add_vertex(CPUMesh::Point(0, mHeightStart, 0));
+        CPUMesh::VertexHandle topCenter = tMesh.add_vertex(CPUMesh::Point(0, mHeight + mHeightStart, 0));
         // Create faces for the top and bottom circles
         for (uint32_t i = 0; i < mSegments; ++i) {
             // Bottom face
@@ -291,5 +292,16 @@ public:
 private:
     float mRadius;
     float mHeight;
+    float mHeightStart = 0.0f;
     uint32_t mSegments;
+};
+
+class Torus : public Geometry {
+public:
+    Torus() {
+    }
+    void operator()(CPUMesh &tMesh) override {
+    }
+
+private:
 };

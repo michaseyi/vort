@@ -26,8 +26,8 @@ fn vs_main(vert: Vertex) -> VSOutput {
     var out: VSOutput;
 
     out.position = (model.model_matrix * vec4(vert.position, 1.0)).xyz;
-    out.normal = model.normal_matrix * vert.normal;
     out.out_position = common_uniforms.camera.view_projection_matrix * vec4(out.position, 1.0);
+    out.normal = model.normal_matrix * vert.normal;
     out.uv = vert.uv;
     return out;
 }

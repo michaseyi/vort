@@ -286,7 +286,7 @@ EntityInterface Entities::getInterface(EntityID entityID) {
 Entities::Entities() {
     mArchtypes.put(Entities::VOID_ARCHTYPE_HASH, ArchTypeStorage{});
 
-    setGlobal(AppState{.initialized = false, .initializationStage = "Creating World", .running = true});
+    setGlobal(AppState{.initializationStage = "Creating World", .initialized = false, .running = true});
 };
 
 EntityID Entities::newEntity(std::string name, EntityInterface interface, EntityID parentID) {
@@ -324,8 +324,7 @@ void Entities::update() {
 
 void Entities::run() {
     auto [appState] = getGlobal<AppState>();
-
-    appState.initializationStage = "Running plugins";
+    appState.initializationStage = "Building plugins";
 
     // build plugins
     for (auto& plugin : mPlugins) {

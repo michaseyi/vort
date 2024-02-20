@@ -53,6 +53,6 @@ else()
     target_link_libraries(Vort PRIVATE  vort-bindings)
     # set_target_properties(Vort PROPERTIES SUFFIX ".html")
     
-    target_link_options(Vort PRIVATE -sUSE_GLFW=3 -sUSE_WEBGPU -sASYNCIFY -sFILESYSTEM=0 -sSTB_IMAGE=1 -sALLOW_MEMORY_GROWTH -sENVIRONMENT=web  -sMALLOC=emmalloc -lembind -sEXPORT_NAME="Vort" -sMODULARIZE -sEXPORTED_RUNTIME_METHODS=[UTF8ToString])
+    target_link_options(Vort PRIVATE -sUSE_GLFW=3 -sUSE_WEBGPU -sASYNCIFY -sFILESYSTEM=0 -sSTB_IMAGE=1 -sALLOW_MEMORY_GROWTH -sENVIRONMENT=web  -sMALLOC=emmalloc -lembind -sEXPORT_NAME="Vort" -sMODULARIZE -sEXPORTED_RUNTIME_METHODS=[UTF8ToString,Asyncify,wasmMemory])
     set_target_properties(Vort PROPERTIES RUNTIME_OUTPUT_DIRECTORY /home/michaseyi/Projects/vort-editor/public)
 endif()

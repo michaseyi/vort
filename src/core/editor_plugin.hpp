@@ -15,6 +15,7 @@
 #include "window.hpp"
 #include "window_events.hpp"
 
+struct TranslationGizmo {};
 struct EditorPlugin {
     static void renderSystem(Command& command, Global<RenderPass>& global) {
         auto [renderPass] = global;
@@ -33,6 +34,33 @@ struct EditorPlugin {
 
         if (!window.isOpen()) {
             appState.running = false;
+        }
+    }
+
+    static void gizmoInit(Command& command) {
+        auto gizmoQuery = command.query<Columns<Position, Scale, Orientation, Mesh>, Tags<TranslationGizmo>>();
+
+        for (auto [position, scale, orientation, mesh] : gizmoQuery) {
+            math::mat4 modelMatrix = math::translate(math::mat4(1.0f), math::vec3(position));
+            modelMatrix = math::rotate(modelMatrix, math::angle(math::quat(orientation)), math::axis(math::quat(orientation)));
+            modelMatrix = math::scale(modelMatrix, math::vec3(scale));
+
+            mesh.applyTransformation(modelMatrix);
+
+            position = Position(0.0f);
+            scale = Scale(1.0f);
+            orientation = Orientation();
+        }
+    }
+
+    static void gizmoUpdate(Command& command) {
+        auto gizmoQuery = command.query<Columns<Position>, Tags<TranslationGizmo>>();
+
+        auto [cameraPosition, cameraOrientation, cameraSettings] =
+            command.query<Columns<Position, Orientation, CameraSettings>, Tags<>>().single();
+        auto cameraFront = math::quat(cameraOrientation) * math::vec3(1.0f, 0.0f, 0.0f);
+        for (auto [position] : gizmoQuery) {
+            // position = math::vec3(-1.0f, 1.0f, 4.0f);
         }
     }
 
@@ -84,8 +112,8 @@ struct EditorPlugin {
         auto cameraEntity = tWorld.newEntity("Camera", EntityInterface::Camera, scene);
 
         tWorld.setComponents(
-            cameraEntity, Position(10.0f, 0.0f, 0.0f), Scale(1.0f), Orientation(),
-            CameraSettings(40.0f, static_cast<float>(window.width()) / static_cast<float>(window.height()), 0.1f, 1000.0f),
+            cameraEntity, Position(4.0f, 0.0f, 0.0f), Scale(1.0f), Orientation(),
+            CameraSettings(45.0f, static_cast<float>(window.width()) / static_cast<float>(window.height()), 0.1f, 1000.0f),
             View());
 
         auto editorCameraController = CameraController();
@@ -101,84 +129,84 @@ struct EditorPlugin {
         tWorld.setComponents(tWorld.newEntity("Ambient Light", EntityInterface::Light, scene),
                              AmbientLight(math::vec3(1.0f), 0.2));
 
-        tWorld.setComponents(tWorld.newEntity("UVSphere", EntityInterface::Mesh, scene), Position(0.0f, 2.0f, 0.0f), Scale(1.0f),
+        tWorld.setComponents(tWorld.newEntity("UVSphere", EntityInterface::Mesh, scene), Position(0.0f), Scale(1.0f),
                              Orientation(),
-                             Mesh(new UVSphere(40, 20, 0.5f), new BasicMaterial(BasicMaterialProps{.color = {0.5f, 0.5f, 0.5f}})),
-                             Interactable(new BoundingSphere(math::vec3(0.0f, 2.0f, 0.0f), 0.5f)));
+                             Mesh(new UVSphere(32, 16, 0.5f), new BasicMaterial(BasicMaterialProps{.color = {0.5f, 0.5f, 0.5f}})),
+                             Interactable(new BoundingSphere(math::vec3(0.0f), 0.5f)));
 
-        tWorld.setComponents(tWorld.newEntity("Cube", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f), Scale(1.0f),
-                             Orientation(),
-                             Mesh(new Cube(1.0f), new BasicMaterial(BasicMaterialProps{.color = {0.5f, 0.5f, 0.5f}})),
-                             Interactable(new AABB(math::vec3(-1.0f), math::vec3(1.0f))));
-
-        auto gizmo = tWorld.newEntity("Gizmo", EntityInterface::None, scene);
-
-        tWorld.setComponents(tWorld.newEntity("Y Axis Arrow", EntityInterface::Mesh, gizmo), Position(0.0f, 0.0f, 0.0f),
+        tWorld.setComponents(tWorld.newEntity("Y Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
                              Scale(1.0f), Orientation(),
-                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.5f, 8), new Cone(0.04f, 0.3f, 16, 0.5f)),
+                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
                                   new PlainMaterial(PlainMaterialProps{.color = {0.0f, 1.0f, 0.0f}}), 1),
-                                  Interactable(new AABB(math::vec3(-0.04f, 0.0f, -0.04f), math::vec3(0.04f, 8.3f, 0.04f))));
+                             TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("X Axis Arrow", EntityInterface::Mesh, gizmo), Position(0.0f, 0.0f, 0.0f),
+        tWorld.setComponents(tWorld.newEntity("X Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
                              Scale(1.0f), Orientation(math::angleAxis(-math::half_pi<float>(), math::vec3(0.0f, 0.0f, 1.0f))),
-                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.5f, 8), new Cone(0.04f, 0.3f, 16, 0.5f)),
-                                  new PlainMaterial(PlainMaterialProps{.color = {1.0f, 0.0f, 0.0f}}), 1));
+                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
+                                  new PlainMaterial(PlainMaterialProps{.color = {1.0f, 0.0f, 0.0f}}), 1),
+                             TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("Z Axis Arrow", EntityInterface::Mesh, gizmo), Position(0.0f, 0.0f, 0.0f),
+        tWorld.setComponents(tWorld.newEntity("Z Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
                              Scale(1.0f), Orientation(math::angleAxis(math::half_pi<float>(), math::vec3(1.0f, 0.0f, 0.0f))),
-                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.5f, 8), new Cone(0.04f, 0.3f, 16, 0.5f)),
-                                  new PlainMaterial(PlainMaterialProps{.color = {0.0f, 0.0f, 1.0f}}), 1));
+                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
+                                  new PlainMaterial(PlainMaterialProps{.color = {0.0f, 0.0f, 1.0f}}), 1),
+                             TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("XZ plane", EntityInterface::Mesh, gizmo), Position(0.3f, 0.0f, 0.3f), Scale(1.0f),
-                             Orientation(),
-                             Mesh(new Plane(0.2f, 0.2f), new PlainMaterial(PlainMaterialProps{.color = {0.0f, 1.0f, 0.0f}}), 1));
+        tWorld.setComponents(tWorld.newEntity("XZ plane", EntityInterface::Mesh, scene), Position(0.25f, 0.0f, 0.25f),
+                             Scale(1.0f), Orientation(),
+                             Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {0.0f, 1.0f, 0.0f}}), 1),
+                             TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("XY plane", EntityInterface::Mesh, gizmo), Position(0.3f, 0.3f, 0.0f), Scale(1.0f),
-                             Orientation(math::angleAxis(-math::half_pi<float>(), math::vec3(1.0f, 0.0f, 0.0f))),
-                             Mesh(new Plane(0.2f, 0.2f), new PlainMaterial(PlainMaterialProps{.color = {0.0f, 0.0f, 1.0f}}), 1));
+        tWorld.setComponents(tWorld.newEntity("XY plane", EntityInterface::Mesh, scene), Position(0.24f, 0.25f, 0.0f),
+                             Scale(1.0f), Orientation(math::angleAxis(-math::half_pi<float>(), math::vec3(1.0f, 0.0f, 0.0f))),
+                             Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {0.0f, 0.0f, 1.0f}}), 1),
+                             TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("YZ plane", EntityInterface::Mesh, gizmo), Position(0.0f, 0.3f, 0.3f), Scale(1.0f),
-                             Orientation(math::angleAxis(math::half_pi<float>(), math::vec3(0.0f, 0.0f, 1.0f))),
-                             Mesh(new Plane(0.2f, 0.2f), new PlainMaterial(PlainMaterialProps{.color = {1.0f, 0.0f, 0.0f}}), 1));
-
-        tWorld.addSystems(SystemSchedule::Update, windowUpdate, renderSystem);
+        tWorld.setComponents(tWorld.newEntity("YZ plane", EntityInterface::Mesh, scene), Position(0.0f, 0.25f, 0.25f),
+                             Scale(1.0f), Orientation(math::angleAxis(math::half_pi<float>(), math::vec3(0.0f, 0.0f, 1.0f))),
+                             Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {1.0f, 0.0f, 0.0f}}), 1),
+                             TranslationGizmo());
 
         window.registerListener<PointerMove>([&tWorld, cameraEntity](const PointerMove* event) {
             auto ray = windowClickToRay(tWorld, cameraEntity, {event->x, event->y}, {event->clientWidth, event->clientHeight});
 
             auto [cameraPosition] = tWorld.getComponents<Position>(cameraEntity);
-            auto query = tWorld.query<Columns<Interactable, Mesh>, Tags<>>();
+            auto query = tWorld.query<Columns<Interactable>, Tags<>>();
 
             EntityID entityHit = 0;
             float entityHitDistanceToCamera = INFINITY;
+            float entityHovered = false;
+
+            std::vector<EntityID> hoverLostEntities;
 
             for (auto i = query.begin(); i != query.end(); i++) {
                 auto currentEntityID = i.currentEntityID();
 
-                auto [interactable, mesh] = *i;
-
-                interactable.hovered = false;
-                mesh.material->setColor(math::vec3(0.5f));
+                auto [interactable] = *i;
 
                 auto intersectionResult = interactable.boundingVolume->intersectRay(ray);
 
                 if (!intersectionResult.has_value()) {
+                    if (interactable.hovered) {
+                        interactable.hovered = false;
+                        hoverLostEntities.push_back(currentEntityID);
+                    }
                     continue;
                 }
 
-                std::cout << tWorld.getName(currentEntityID) << " hit\n";
                 if (auto distanceToCamera = math::distance(intersectionResult.value(), static_cast<math::vec3>(cameraPosition));
                     distanceToCamera < entityHitDistanceToCamera) {
+                    if (entityHit != 0 && entityHovered) {}
                     entityHit = currentEntityID;
                     entityHitDistanceToCamera = distanceToCamera;
+                    entityHovered = interactable.hovered;
                 }
             }
 
             if (entityHit != 0) {
-                auto [interactable, mesh] = tWorld.getComponents<Interactable, Mesh>(entityHit);
+                auto [interactable] = tWorld.getComponents<Interactable>(entityHit);
 
                 interactable.hovered = true;
-                mesh.material->setColor(math::vec3(0.7f));
             }
         });
 
@@ -195,7 +223,9 @@ struct EditorPlugin {
         });
 
         tWorld.setGlobal(std::move(window));
+        tWorld.addSystems(SystemSchedule::Startup, gizmoInit);
 
+        tWorld.addSystems(SystemSchedule::Update, windowUpdate, gizmoUpdate, renderSystem);
         // updating the window user pointer here, since the window is already in location that would stay permanent thought out
         // the lifetime of the application
         std::get<0>(tWorld.getGlobal<Window>()).updateUserPointer();

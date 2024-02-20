@@ -72,8 +72,7 @@ struct CameraSettings {
     float near;
     float far;
     math::vec3 reference{0.0f};
-    float zoom = 0.0f;
-    float zoomSensitivity = 1 / 60.0f;
+    float moveSensitivity = 1 / 120.0f;
     float rotationSensitivity = 1 / 120.0f;
 };
 

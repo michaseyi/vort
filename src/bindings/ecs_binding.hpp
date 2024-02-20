@@ -44,9 +44,11 @@ public:
 
     static uintptr_t entityGetOrientation(EntityID entityID);
 
-    static void editorCameraZoom(float zoomChange);
+    static void editorMoveCamera(float xChange, float yChange, float zChange);
 
-    static void editorCameraRotate(float pitchAngle, float yawAngle);
+    static void editorRotateCamera(float pitchAngle, float yawAngle);
+
+    static uintptr_t globalGetAppState();
 
 private:
     inline static World *mWorld;

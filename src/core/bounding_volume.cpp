@@ -115,3 +115,4 @@ math::ray windowClickToRay(World& tWorld, EntityID tCamera, math::ivec2 tClickPo
 
     return math::ray(origin, direction);
 }
+
