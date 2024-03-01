@@ -89,3 +89,13 @@ struct Interactable {
 
     bool hovered;
 };
+
+
+struct RotationGizmo {
+    math::vec3 positiveXAxis;
+    math::vec3 positiveYAxis;
+    math::vec3 positiveZAxis;
+    math::vec3 negativeXAxis;
+    math::vec3 negativeYAxis;
+    math::vec3 negativeZAxis;
+};

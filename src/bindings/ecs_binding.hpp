@@ -50,6 +50,8 @@ public:
 
     static uintptr_t globalGetAppState();
 
+    static uintptr_t globalGetRotationGizmoData();
+
 private:
     inline static World *mWorld;
 };

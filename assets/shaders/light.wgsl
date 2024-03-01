@@ -40,19 +40,22 @@ fn compute_ambient_light(light: AmbientLight) -> vec3<f32> {
 
 fn compute_point_light(light: PointLight, position: vec3<f32>, normal: vec3<f32>) -> vec3<f32> {
     let light_vector: vec3<f32> = normalize(light.position - position);
-    let illumination_factor: f32 = max(0, dot(light_vector, normal));
+    // let illumination_factor: f32 = max(0, dot(light_vector, normal));
+    let illumination_factor: f32 = abs(dot(light_vector, normal));
     let attenuation_factor: f32 = compute_attenuation_factor(light.attenuation_coefficients, distance(light.position, position));
     return illumination_factor * attenuation_factor * light.intensity * light.color;
 }
 
 fn compute_directional_light(light: DirectionalLight, normal: vec3<f32>) -> vec3<f32> {
-    let illumination_factor: f32 = max(0, dot(-light.direction, normal));
+    // let illumination_factor: f32 = max(0, dot(-light.direction, normal));
+    let illumination_factor: f32 = abs(dot(-light.direction, normal));
     return illumination_factor * light.intensity * light.color;
 }
 
 fn compute_spot_light(light: SpotLight, position: vec3<f32>, normal: vec3<f32>) -> vec3<f32> {
     let light_vector: vec3<f32> = normalize(light.position - position);
-    let illumination_factor: f32 = max(0, dot(light_vector, normal));
+    // let illumination_factor: f32 = max(0, dot(light_vector, normal));
+    let illumination_factor: f32 = abs(dot(light_vector, normal));
     let cosine_cone_angle: f32 = acos(dot(light.direction, -light_vector));
     let falloff_factor: f32 = 1.0 - smoothstep(light.inner_cone_angle, light.outer_cone_angle, cosine_cone_angle);
     let attenuation_factor: f32 = compute_attenuation_factor(light.attenuation_coefficients, distance(light.position, position));

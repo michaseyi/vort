@@ -49,7 +49,7 @@ struct DefaultRenderPass : public Pass {
         renderTarget.textureViews.push_back(context.getMultiSampleTextureView());
 
         wgpu::RenderPassColorAttachment colorAttachment = wgpu::Default;
-        colorAttachment.clearValue = {0, 0, 0, 1};
+        colorAttachment.clearValue = {0.172, 0.172, 0.172, 1};
         colorAttachment.loadOp = wgpu::LoadOp::Clear;
         colorAttachment.storeOp = wgpu::StoreOp::Store;
         colorAttachment.view = *renderTarget.textureViews[1];
@@ -153,7 +153,7 @@ struct DefaultRenderPass : public Pass {
         uint32_t meshIndex = 0;
         for (auto [position, scale, orientation, mesh] : tCommand.query<Columns<Position, Scale, Orientation, Mesh>, Tags<>>()) {
             mesh.updateGPUMesh();
-            mesh.material->update(meshIndex);
+            // mesh.material->update(meshIndex);
 
             math::mat4 modelMatrix = math::translate(math::mat4(1.0f), math::vec3(position));
             modelMatrix = math::rotate(modelMatrix, math::angle(math::quat(orientation)), math::axis(math::quat(orientation)));
@@ -170,63 +170,65 @@ struct DefaultRenderPass : public Pass {
             wgpu::RenderPipelineDescriptor renderPipelineDesc = wgpu::Default;
 
             // drawing modes modes -> surfaces (the default), edges(wireframe), vertices
-            auto meshDrawData = mesh.drawData();
+            std::vector<MeshDrawData> drawData = {mesh.facesDrawData(), mesh.verticesDrawData(), mesh.edgesDrawData()};
 
-            renderPipelineDesc.vertex.bufferCount = meshDrawData.vertexBuffers.size();
-            renderPipelineDesc.vertex.buffers = meshDrawData.vertexBufferLayouts.data();
-            renderPipelineDesc.vertex.entryPoint = meshDrawData.vertexShaderEntry.c_str();
-            renderPipelineDesc.vertex.module = meshDrawData.vertexShader;
+            for (auto &meshDrawData : drawData) {
+                renderPipelineDesc.vertex.bufferCount = meshDrawData.vertexBuffers.size();
+                renderPipelineDesc.vertex.buffers = meshDrawData.vertexBufferLayouts.data();
+                renderPipelineDesc.vertex.entryPoint = meshDrawData.vertexShaderEntry.c_str();
+                renderPipelineDesc.vertex.module = meshDrawData.vertexShader;
 
-            renderPipelineDesc.multisample.count = 4;
-            renderPipelineDesc.multisample.alphaToCoverageEnabled = true;
-            renderPipelineDesc.multisample.mask = ~0u;
+                renderPipelineDesc.multisample.count = 4;
+                renderPipelineDesc.multisample.alphaToCoverageEnabled = true;
+                renderPipelineDesc.multisample.mask = ~0u;
 
-            wgpu::FragmentState fragmentState = wgpu::Default;
-            fragmentState.targets = renderTarget.colorTargets.data();
-            fragmentState.targetCount = renderTarget.colorTargets.size();
-            fragmentState.entryPoint = "fs_main";
-            fragmentState.module = mesh.material->shader();
-            renderPipelineDesc.fragment = &fragmentState;
+                wgpu::FragmentState fragmentState = wgpu::Default;
+                fragmentState.targets = renderTarget.colorTargets.data();
+                fragmentState.targetCount = renderTarget.colorTargets.size();
+                fragmentState.entryPoint = meshDrawData.fragmentShaderEntry.c_str();
+                fragmentState.module = meshDrawData.fragmentShader;
+                renderPipelineDesc.fragment = &fragmentState;
 
-            renderPipelineDesc.primitive.cullMode = wgpu::CullMode::None;
-            renderPipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
-            renderPipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
+                renderPipelineDesc.primitive.cullMode = wgpu::CullMode::None;
+                renderPipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
+                renderPipelineDesc.primitive.topology = meshDrawData.topology;
 
-            wgpu::DepthStencilState depthStencilState = wgpu::Default;
-            depthStencilState.depthCompare = wgpu::CompareFunction::Less;
-            depthStencilState.depthWriteEnabled = true;
-            depthStencilState.format = wgpu::TextureFormat::Depth24PlusStencil8;
-            renderPipelineDesc.depthStencil = &depthStencilState;
+                wgpu::DepthStencilState depthStencilState = wgpu::Default;
+                depthStencilState.depthCompare = wgpu::CompareFunction::Less;
+                depthStencilState.depthWriteEnabled = true;
+                depthStencilState.format = wgpu::TextureFormat::Depth24PlusStencil8;
+                renderPipelineDesc.depthStencil = &depthStencilState;
 
 #pragma region pipeline for resources
-            wgpu::PipelineLayoutDescriptor pipelineLayoutDescriptor = wgpu::Default;
+                wgpu::PipelineLayoutDescriptor pipelineLayoutDescriptor = wgpu::Default;
 
-            auto resourceGroupZeroEntry = resourceGroupZero.resourceGroupEntry();
-            auto materialResourceGroupEntry = mesh.material->resourceGroupEntry();
+                auto resourceGroupZeroEntry = resourceGroupZero.resourceGroupEntry();
+                // auto materialResourceGroupEntry = mesh.material->resourceGroupEntry();
 
-            std::vector<WGPUBindGroupLayout> bindGroupLayouts = {resourceGroupZeroEntry.wgpuBindGroupLayout,
-                                                                 materialResourceGroupEntry.wgpuBindGroupLayout};
-            pipelineLayoutDescriptor.bindGroupLayoutCount = bindGroupLayouts.size();
-            pipelineLayoutDescriptor.bindGroupLayouts = bindGroupLayouts.data();
+                // std::vector<WGPUBindGroupLayout> bindGroupLayouts = {resourceGroupZeroEntry.wgpuBindGroupLayout,
+                //                                                      materialResourceGroupEntry.wgpuBindGroupLayout};
+                std::vector<WGPUBindGroupLayout> bindGroupLayouts = {resourceGroupZeroEntry.wgpuBindGroupLayout};
+                pipelineLayoutDescriptor.bindGroupLayoutCount = bindGroupLayouts.size();
+                pipelineLayoutDescriptor.bindGroupLayouts = bindGroupLayouts.data();
 
-            RAIIWrapper<wgpu::PipelineLayout> layout = device.createPipelineLayout(pipelineLayoutDescriptor);
-            renderPipelineDesc.layout = *layout;
+                RAIIWrapper<wgpu::PipelineLayout> layout = device.createPipelineLayout(pipelineLayoutDescriptor);
+                renderPipelineDesc.layout = *layout;
 #pragma endregion
 
-            RAIIWrapper<wgpu::RenderPipeline> renderPipeline = device.createRenderPipeline(renderPipelineDesc);
+                RAIIWrapper<wgpu::RenderPipeline> renderPipeline = device.createRenderPipeline(renderPipelineDesc);
 
-            renderPassEncoder->setBindGroup(0, resourceGroupZeroEntry.wgpuBindGroup,
-                                            generalUniforms.modelUniforms->stride() * meshIndex);
+                renderPassEncoder->setBindGroup(0, resourceGroupZeroEntry.wgpuBindGroup,
+                                                generalUniforms.modelUniforms->stride() * meshIndex);
 
-            renderPassEncoder->setBindGroup(1, materialResourceGroupEntry.wgpuBindGroup, mesh.material->uniformOffset());
+                // renderPassEncoder->setBindGroup(1, materialResourceGroupEntry.wgpuBindGroup, mesh.material->uniformOffset());
 
-            for (uint32_t i = 0; i < meshDrawData.vertexBuffers.size(); i++) {
-                renderPassEncoder->setVertexBuffer(i, meshDrawData.vertexBuffers[i], 0,
-                                                   meshDrawData.vertexBufferLayouts[i].arrayStride * meshDrawData.vertexCount);
+                for (uint32_t i = 0; i < meshDrawData.vertexBuffers.size(); i++) {
+                    renderPassEncoder->setVertexBuffer(i, meshDrawData.vertexBuffers[i], 0,
+                                                       meshDrawData.vertexBuffers[i].getSize());
+                }
+                renderPassEncoder->setPipeline(*renderPipeline);
+                renderPassEncoder->draw(meshDrawData.vertexCount, meshDrawData.instanceCount, 0, 0);
             }
-            renderPassEncoder->setPipeline(*renderPipeline);
-            renderPassEncoder->draw(meshDrawData.vertexCount, 1, 0, 0);
-
             meshIndex++;
         }
 #pragma endregion

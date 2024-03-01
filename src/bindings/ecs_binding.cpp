@@ -124,12 +124,18 @@ uintptr_t ECSBinding::globalGetAppState() {
     return reinterpret_cast<uintptr_t>(&appState);
 }
 
+uintptr_t ECSBinding::globalGetRotationGizmoData() {
+    auto [rotationGizmo] = mWorld->getGlobal<RotationGizmo>();
+    return reinterpret_cast<uintptr_t>(&rotationGizmo);
+}
+
 void ECSBinding::editorRotateCamera(float pitchAngle, float yawAngle) {
     auto [editorCameraController] = mWorld->getGlobal<CameraController>();
     editorCameraController.rotate(*mWorld, pitchAngle, yawAngle);
 }
 EMSCRIPTEN_BINDINGS(Vort) {
     emscripten::function("globalGetAppState", ECSBinding::globalGetAppState);
+    emscripten::function("globalGetRotationGizmoData", ECSBinding::globalGetRotationGizmoData);
 
     emscripten::function("entitiesRemoveEntity", ECSBinding::entitiesRemoveEntity);
     emscripten::function("entitiesCreateEntity", ECSBinding::entitiesCreateEntity);

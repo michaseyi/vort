@@ -38,30 +38,30 @@ struct EditorPlugin {
     }
 
     static void gizmoInit(Command& command) {
-        auto gizmoQuery = command.query<Columns<Position, Scale, Orientation, Mesh>, Tags<TranslationGizmo>>();
+        // auto gizmoQuery = command.query<Columns<Position, Scale, Orientation, Mesh>, Tags<TranslationGizmo>>();
 
-        for (auto [position, scale, orientation, mesh] : gizmoQuery) {
-            math::mat4 modelMatrix = math::translate(math::mat4(1.0f), math::vec3(position));
-            modelMatrix = math::rotate(modelMatrix, math::angle(math::quat(orientation)), math::axis(math::quat(orientation)));
-            modelMatrix = math::scale(modelMatrix, math::vec3(scale));
+        // for (auto [position, scale, orientation, mesh] : gizmoQuery) {
+        //     math::mat4 modelMatrix = math::translate(math::mat4(1.0f), math::vec3(position));
+        //     modelMatrix = math::rotate(modelMatrix, math::angle(math::quat(orientation)), math::axis(math::quat(orientation)));
+        //     modelMatrix = math::scale(modelMatrix, math::vec3(scale));
 
-            mesh.applyTransformation(modelMatrix);
+        //     mesh.applyTransformation(modelMatrix);
 
-            position = Position(0.0f);
-            scale = Scale(1.0f);
-            orientation = Orientation();
-        }
+        //     position = Position(0.0f);
+        //     scale = Scale(1.0f);
+        //     orientation = Orientation();
+        // }
     }
 
     static void gizmoUpdate(Command& command) {
-        auto gizmoQuery = command.query<Columns<Position>, Tags<TranslationGizmo>>();
+        // auto gizmoQuery = command.query<Columns<Position>, Tags<TranslationGizmo>>();
 
-        auto [cameraPosition, cameraOrientation, cameraSettings] =
-            command.query<Columns<Position, Orientation, CameraSettings>, Tags<>>().single();
-        auto cameraFront = math::quat(cameraOrientation) * math::vec3(1.0f, 0.0f, 0.0f);
-        for (auto [position] : gizmoQuery) {
-            // position = math::vec3(-1.0f, 1.0f, 4.0f);
-        }
+        // auto [cameraPosition, cameraOrientation, cameraSettings] =
+        //     command.query<Columns<Position, Orientation, CameraSettings>, Tags<>>().single();
+        // auto cameraFront = math::quat(cameraOrientation) * math::vec3(1.0f, 0.0f, 0.0f);
+        // for (auto [position] : gizmoQuery) {
+        //     // position = math::vec3(-1.0f, 1.0f, 4.0f);
+        // }
     }
 
     void operator()(World& tWorld) {
@@ -90,7 +90,7 @@ struct EditorPlugin {
         resourceGroupZero.bindResource(1, modelUniforms);
 
         tWorld.setGlobal(RenderPass{}, GeneralUniforms{std::move(commonUniforms), std::move(modelUniforms)},
-                         std::move(resourceGroupZero));
+                         std::move(resourceGroupZero), RotationGizmo{});
 
         // set mesh component init and deint handler
         tWorld.setComponentInitHandler<Mesh>([](World& world, EntityID entityID) {
@@ -112,7 +112,7 @@ struct EditorPlugin {
         auto cameraEntity = tWorld.newEntity("Camera", EntityInterface::Camera, scene);
 
         tWorld.setComponents(
-            cameraEntity, Position(4.0f, 0.0f, 0.0f), Scale(1.0f), Orientation(),
+            cameraEntity, Position(12.0f, 0.0f, 0.0f), Scale(1.0f), Orientation(),
             CameraSettings(45.0f, static_cast<float>(window.width()) / static_cast<float>(window.height()), 0.1f, 1000.0f),
             View());
 
@@ -122,50 +122,52 @@ struct EditorPlugin {
         tWorld.setComponents(pointLightEntity, PointLight(math::vec3(0.0f, 8.0f, -10.0f), 0.8, math::vec3(1.0f),
                                                           math::vec3(0.000007f, 0.0014f, 1.0f)));
 
-        editorCameraController.attachCamera(cameraEntity).attachLight(pointLightEntity).init(tWorld);
+        editorCameraController.attachCamera(cameraEntity)
+            .attachLight(pointLightEntity)
+            .init(tWorld);
+            // .rotate(tWorld, math::radians(-45.0f * 100), math::radians(45.0f * 100));
+
         tWorld.setGlobal(editorCameraController);
 
         // ambient light
         tWorld.setComponents(tWorld.newEntity("Ambient Light", EntityInterface::Light, scene),
-                             AmbientLight(math::vec3(1.0f), 0.2));
+                             AmbientLight(math::vec3(1.0f), 0.4));
 
-        tWorld.setComponents(tWorld.newEntity("UVSphere", EntityInterface::Mesh, scene), Position(0.0f), Scale(1.0f),
-                             Orientation(),
-                             Mesh(new UVSphere(32, 16, 0.5f), new BasicMaterial(BasicMaterialProps{.color = {0.5f, 0.5f, 0.5f}})),
-                             Interactable(new BoundingSphere(math::vec3(0.0f), 0.5f)));
+        tWorld.setComponents(tWorld.newEntity("Cube", EntityInterface::Mesh, scene), Position(0.0f), Scale(1.0f), Orientation(),
+                             Mesh(new Cube(1.0f), new BasicMaterial(BasicMaterialProps{.color = {0.5f, 0.5f, 0.5f}})));
 
-        tWorld.setComponents(tWorld.newEntity("Y Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
-                             Scale(1.0f), Orientation(),
-                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
-                                  new PlainMaterial(PlainMaterialProps{.color = {0.0f, 1.0f, 0.0f}}), 1),
-                             TranslationGizmo());
+        // tWorld.setComponents(tWorld.newEntity("Y Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
+        //                      Scale(1.0f), Orientation(),
+        //                      Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
+        //                           new PlainMaterial(PlainMaterialProps{.color = {0.0f, 1.0f, 0.0f}}), 1),
+        //                      TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("X Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
-                             Scale(1.0f), Orientation(math::angleAxis(-math::half_pi<float>(), math::vec3(0.0f, 0.0f, 1.0f))),
-                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
-                                  new PlainMaterial(PlainMaterialProps{.color = {1.0f, 0.0f, 0.0f}}), 1),
-                             TranslationGizmo());
+        // tWorld.setComponents(tWorld.newEntity("X Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
+        //                      Scale(1.0f), Orientation(math::angleAxis(-math::half_pi<float>(), math::vec3(0.0f, 0.0f, 1.0f))),
+        //                      Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
+        //                           new PlainMaterial(PlainMaterialProps{.color = {1.0f, 0.0f, 0.0f}}), 1),
+        //                      TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("Z Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
-                             Scale(1.0f), Orientation(math::angleAxis(math::half_pi<float>(), math::vec3(1.0f, 0.0f, 0.0f))),
-                             Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
-                                  new PlainMaterial(PlainMaterialProps{.color = {0.0f, 0.0f, 1.0f}}), 1),
-                             TranslationGizmo());
+        // tWorld.setComponents(tWorld.newEntity("Z Axis Arrow", EntityInterface::Mesh, scene), Position(0.0f, 0.0f, 0.0f),
+        //                      Scale(1.0f), Orientation(math::angleAxis(math::half_pi<float>(), math::vec3(1.0f, 0.0f, 0.0f))),
+        //                      Mesh(new CombinedGeometry(new Cylinder(0.01f, 0.6f, 4), new Cone(0.04f, 0.2f, 8, 0.6f)),
+        //                           new PlainMaterial(PlainMaterialProps{.color = {0.0f, 0.0f, 1.0f}}), 1),
+        //                      TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("XZ plane", EntityInterface::Mesh, scene), Position(0.25f, 0.0f, 0.25f),
-                             Scale(1.0f), Orientation(),
-                             Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {0.0f, 1.0f, 0.0f}}), 1),
-                             TranslationGizmo());
+        // tWorld.setComponents(tWorld.newEntity("XZ plane", EntityInterface::Mesh, scene), Position(0.25f, 0.0f, 0.25f),
+        //                      Scale(1.0f), Orientation(),
+        //                      Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {0.0f, 1.0f, 0.0f}}),
+        //                      1), TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("XY plane", EntityInterface::Mesh, scene), Position(0.24f, 0.25f, 0.0f),
-                             Scale(1.0f), Orientation(math::angleAxis(-math::half_pi<float>(), math::vec3(1.0f, 0.0f, 0.0f))),
-                             Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {0.0f, 0.0f, 1.0f}}), 1),
-                             TranslationGizmo());
+        // tWorld.setComponents(tWorld.newEntity("XY plane", EntityInterface::Mesh, scene), Position(0.24f, 0.25f, 0.0f),
+        //                      Scale(1.0f), Orientation(math::angleAxis(-math::half_pi<float>(), math::vec3(1.0f, 0.0f, 0.0f))),
+        //                      Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {0.0f, 0.0f, 1.0f}}),
+        //                      1), TranslationGizmo());
 
-        tWorld.setComponents(tWorld.newEntity("YZ plane", EntityInterface::Mesh, scene), Position(0.0f, 0.25f, 0.25f),
-                             Scale(1.0f), Orientation(math::angleAxis(math::half_pi<float>(), math::vec3(0.0f, 0.0f, 1.0f))),
-                             Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {1.0f, 0.0f, 0.0f}}), 1),
-                             TranslationGizmo());
+        // tWorld.setComponents(tWorld.newEntity("YZ plane", EntityInterface::Mesh, scene), Position(0.0f, 0.25f, 0.25f),
+        //                      Scale(1.0f), Orientation(math::angleAxis(math::half_pi<float>(), math::vec3(0.0f, 0.0f, 1.0f))),
+        //                      Mesh(new Plane(0.15f, 0.15f), new PlainMaterial(PlainMaterialProps{.color = {1.0f, 0.0f, 0.0f}}),
+        //                      1), TranslationGizmo());
 
         window.registerListener<PointerMove>([&tWorld, cameraEntity](const PointerMove* event) {
             auto ray = windowClickToRay(tWorld, cameraEntity, {event->x, event->y}, {event->clientWidth, event->clientHeight});
