@@ -1,184 +1,192 @@
 #include "archtype.hpp"
 
+namespace ecs {
+
 #ifdef ARCHTYPE_TEMPLATE_IMPL
 template <typename T>
-void ArchTypeStorage::set(uint32_t rowIndex, T component) {
-    assert(mEntityIDs.size() > rowIndex);
+void ArchTypeStorage::set(uint32_t row_index, T component) {
+  assert(entity_ids_.size() > row_index);
 
-    auto index = std::type_index(typeid(T));
-    auto& storage = *mComponents.get(index);
-    ComponentStorage<T>& typedStorage = *storage.cast<T>();
-    typedStorage[rowIndex] = std::move(component);
+  auto index = std::type_index(typeid(T));
+  auto& storage = *erased_component_storages_.get(index);
+  ComponentStorage<T>& typed_storage = *storage.cast<T>();
+  typed_storage[row_index] = std::move(component);
 }
 
 template <typename T>
 void ArchTypeStorage::set(T component) {
-    auto index = std::type_index(typeid(T));
-    auto& storage = *mComponents.get(index);
-    ComponentStorage<T>& typedStorage = *storage.cast<T>();
-    auto row = typedStorage.put(std::move(component));
-    assert(row == mEntityIDs.size() - 1);
+  auto index = std::type_index(typeid(T));
+  auto& storage = *erased_component_storages_.get(index);
+  ComponentStorage<T>& typed_storage = *storage.cast<T>();
+  auto row = typed_storage.put(std::move(component));
+  assert(row == entity_ids_.size() - 1);
 }
 
 template <typename... T>
-bool ArchTypeStorage::hasComponents() {
-    return (hasComponent<T>() && ...);
+bool ArchTypeStorage::has_components() {
+  return (has_component<T>() && ...);
 }
 
 template <typename... T>
 ArchTypeStorage ArchTypeStorage::create() {
-    auto archType = ArchTypeStorage();
+  auto archtype = ArchTypeStorage();
 
-    archType.mHash = computeHash<T...>();
+  archtype.hash_ = compute_hash<T...>();
 
-    size_t size = sizeof...(T);
+  size_t size = sizeof...(T);
 
-    archType.mComponents.reserve(size);
-    archType.mComponentTypes.reserve(size);
+  archtype.erased_component_storages_.reserve(size);
+  archtype.component_types_.reserve(size);
 
-    (
-        [&]() {
-            auto index = std::type_index(typeid(T));
-            archType.mComponentTypes.emplace_back(index);
-            archType.mComponents.put(index, ErasedComponentStorage::create<T>());
-        }(),
-        ...);
-    return archType;
+  (
+      [&]() {
+        auto index = std::type_index(typeid(T));
+        archtype.component_types_.emplace_back(index);
+        archtype.erased_component_storages_.put(
+            index, ErasedComponentStorage::create<T>());
+      }(),
+      ...);
+  return archtype;
 }
 
 template <typename T>
-bool ArchTypeStorage::hasComponent() {
-    auto key = std::type_index(typeid(T));
-    return hasComponent(key);
+bool ArchTypeStorage::has_component() {
+  auto key = std::type_index(typeid(T));
+  return has_component(key);
 }
 
 template <typename... T>
-u_int64_t ArchTypeStorage::computeHash() {
-    std::vector<std::type_index> types{std::type_index(typeid(T))...};
-    return computeHash(types);
+u_int64_t ArchTypeStorage::compute_hash() {
+  std::vector<std::type_index> types{std::type_index(typeid(T))...};
+  return compute_hash(types);
 }
 
 template <typename T>
-T& ArchTypeStorage::getRow(uint32_t rowIndex) {
-    auto index = std::type_index(typeid(T));
-    return (*getComponent(index)->cast<T>())[rowIndex];
+T& ArchTypeStorage::get_row(uint32_t rowIndex) {
+  auto index = std::type_index(typeid(T));
+  return (*get_component(index)->cast<T>())[rowIndex];
 }
 
 #else
 
-uint32_t ArchTypeStorage::newRow(EntityID entity) {
-    auto newRowIndex = mEntityIDs.size();
-    mEntityIDs.emplace_back(entity);
-    return newRowIndex;
+uint32_t ArchTypeStorage::new_row(EntityId entity_id) {
+  auto new_row_index = entity_ids_.size();
+  entity_ids_.emplace_back(entity_id);
+  return new_row_index;
 }
 
-bool ArchTypeStorage::hasComponent(std::type_index type) {
-    if (mComponents.get(type)) {
-        return true;
-    }
-    return false;
+bool ArchTypeStorage::has_component(std::type_index type) {
+  if (erased_component_storages_.get(type)) {
+    return true;
+  }
+  return false;
 }
 
-u_int64_t ArchTypeStorage::computeHash(std::vector<std::type_index>& types) {
-    std::sort(types.begin(), types.end(), std::greater<std::type_index>());
+u_int64_t ArchTypeStorage::compute_hash(std::vector<std::type_index>& types) {
+  std::sort(types.begin(), types.end(), std::greater<std::type_index>());
 
-    u_int64_t hash = 0;
+  u_int64_t hash = 0;
 
-    for (auto& type : types) {
-        hash ^= type.hash_code();
-    }
-    return hash;
+  for (auto& type : types) {
+    hash ^= type.hash_code();
+  }
+  return hash;
 }
 
-void ArchTypeStorage::computeHash() {
-    mHash = computeHash(mComponentTypes);
+void ArchTypeStorage::compute_hash() {
+  hash_ = compute_hash(component_types_);
 }
 
-void ArchTypeStorage::setHash(u_int64_t hash) {
-    mHash = hash;
+void ArchTypeStorage::set_hash(u_int64_t hash) {
+  hash_ = hash;
 }
 
-u_int64_t ArchTypeStorage::getHash() {
-    return mHash;
+u_int64_t ArchTypeStorage::get_hash() {
+  return hash_;
 }
 
-std::vector<EntityID>& ArchTypeStorage::entities() {
-    return mEntityIDs;
+std::vector<EntityId>& ArchTypeStorage::entities() {
+  return entity_ids_;
 }
 
-EntityID ArchTypeStorage::entityIDFromRowIndex(uint32_t rowIndex) {
-    return mEntityIDs[rowIndex];
+EntityId ArchTypeStorage::get_entity_id_from_row_index(uint32_t row_index) {
+  return entity_ids_[row_index];
 }
 
-void ArchTypeStorage::removeRow(uint32_t rowIndex) {
-    assert(mEntityIDs.size() > rowIndex);
+void ArchTypeStorage::remove_row(uint32_t row_index) {
+  assert(entity_ids_.size() > row_index);
 
-    std::swap(mEntityIDs[rowIndex], mEntityIDs.back());
-    mEntityIDs.pop_back();
-    for (auto& component : mComponents.values()) {
-        component.remove(rowIndex);
-    }
+  std::swap(entity_ids_[row_index], entity_ids_.back());
+  entity_ids_.pop_back();
+  for (auto& component : erased_component_storages_.values()) {
+    component.remove(row_index);
+  }
 }
 
-std::vector<std::type_index>& ArchTypeStorage::componentTypes() {
-    return mComponentTypes;
+std::vector<std::type_index>& ArchTypeStorage::get_component_types() {
+  return component_types_;
 }
 
-ArchTypeStorage ArchTypeStorage::fromTypeIndex(std::vector<std::type_index>& types) {
-    ArchTypeStorage archType;
+ArchTypeStorage ArchTypeStorage::from_type_index(
+    std::vector<std::type_index>& types) {
+  ArchTypeStorage archtype;
 
-    for (auto& type : types) {
-        archType.addComponent(type);
-    }
+  for (auto& type : types) {
+    archtype.add_component(type);
+  }
 
-    return archType;
+  return archtype;
 }
 
 ArchTypeStorage ArchTypeStorage::clone() {
-    auto storageClone = fromTypeIndex(mComponentTypes);
+  auto archtype_clone = from_type_index(component_types_);
 
-    for (auto& type : mComponentTypes) {
-        getComponent(type)->cloneTo(*storageClone.getComponent(type));
-    }
+  for (auto& type : component_types_) {
+    get_component(type)->clone_to(*archtype_clone.get_component(type));
+  }
 
-    return storageClone;
+  return archtype_clone;
 }
 
 ArchTypeStorage ArchTypeStorage::clone(std::vector<std::type_index>& types) {
-    for (auto& type : types) {
-        assert(hasComponent(type));
-    }
+  for (auto& type : types) {
+    assert(has_component(type));
+  }
 
-    auto storageClone = fromTypeIndex(types);
+  auto archtype_clone = from_type_index(types);
 
-    for (auto& type : types) {
-        getComponent(type)->cloneTo(*storageClone.getComponent(type));
-    }
+  for (auto& type : types) {
+    get_component(type)->clone_to(*archtype_clone.get_component(type));
+  }
 
-    return storageClone;
+  return archtype_clone;
 }
 
-ArrayHashMap<std::type_index, ErasedComponentStorage>& ArchTypeStorage::components() {
-    return mComponents;
+ArrayHashMap<std::type_index, ErasedComponentStorage>&
+ArchTypeStorage::get_component_storages() {
+  return erased_component_storages_;
 }
 
-void ArchTypeStorage::addComponent(std::type_index type) {
-    if (hasComponent(type)) {
-        return;
-    }
-    mComponentTypes.emplace_back(type);
-    mComponents.put(type, ErasedComponentStorage());
+void ArchTypeStorage::add_component(std::type_index type) {
+  if (has_component(type)) {
+    return;
+  }
+  component_types_.emplace_back(type);
+  erased_component_storages_.put(type, ErasedComponentStorage());
 }
 
-void ArchTypeStorage::addComponent(std::type_index type, ErasedComponentStorage componenetStorage) {
-    if (hasComponent(type)) {
-        return;
-    }
-    mComponentTypes.emplace_back(type);
-    mComponents.put(type, std::move(componenetStorage));
+void ArchTypeStorage::add_component(
+    std::type_index type, ErasedComponentStorage erased_component_storage) {
+  if (has_component(type)) {
+    return;
+  }
+  component_types_.emplace_back(type);
+  erased_component_storages_.put(type, std::move(erased_component_storage));
 }
 
-ErasedComponentStorage* ArchTypeStorage::getComponent(std::type_index& type) {
-    return mComponents.get(type);
+ErasedComponentStorage* ArchTypeStorage::get_component(std::type_index& type) {
+  return erased_component_storages_.get(type);
 }
 #endif
+
+}  // namespace ecs

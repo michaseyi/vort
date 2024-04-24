@@ -3,7 +3,7 @@
 #include "src/core/config.hpp"
 #include "utils.hpp"
 
-std::string loadShaderCode(std::string tPath) {
-    auto &config = Config::get();
-    return loadString(config.shaderPrefixPath + tPath);
+std::string load_shader_code(std::string tPath) {
+  auto& config = core::Config::get();
+  return load_string(config.shader_prefix_path + tPath);
 }

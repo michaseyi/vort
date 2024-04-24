@@ -5,58 +5,31 @@
 #include "src/utils/raii.hpp"
 #include "webgpu.hpp"
 
-class Window;
+namespace renderer {
 
-class WGPUContext {
-public:
-    wgpu::Instance& getInstance();
+class WgpuContext {
+ public:
+  wgpu::Instance& get_instance();
 
-    wgpu::Adapter& getAdapter();
+  wgpu::Adapter& get_adapter();
 
-    wgpu::Device getDevice();
+  wgpu::Device& get_device();
 
-    wgpu::SwapChain getSwapChain();
+  wgpu::Queue& get_queue();
 
-    RAIIWrapper<wgpu::TextureView> getDepthStencilTextureView();
+  static bool init();
 
-    RAIIWrapper<wgpu::TextureView> getMultiSampleTextureView();
+  static WgpuContext& get();
 
-    wgpu::Surface getSurface();
+ private:
+  WgpuContext();
 
-    wgpu::Queue getQueue();
+ private:
+  inline static WgpuContext* context_ = nullptr;
 
-    static bool init(Window* tWindow = nullptr);
-
-    static WGPUContext& getContext();
-
-    void onWindowResize(int32_t tWidth, int32_t tHeight);
-
-    wgpu::TextureFormat getOutputTextureFormat();
-
-    wgpu::TextureFormat getDepthStencilTextureFormat();
-
-private:
-    wgpu::SwapChain createSwapChain(int32_t tWidth, int32_t tHeight);
-    wgpu::Texture createMultiSamplingTexture(int32_t tWidth, int32_t tHeight);
-    wgpu::Texture createDepthStencilTexture(int32_t tWidth, int32_t tHeight);
-    WGPUContext(Window* tWindow);
-
-private:
-    inline static WGPUContext* mContext = nullptr;
-
-    RAIIWrapper<wgpu::Instance> mInstance;
-    RAIIWrapper<wgpu::Adapter> mAdapter;
-    RAIIWrapper<wgpu::Device> mDevice;
-    RAIIWrapper<wgpu::Queue> mQueue;
-    RAIIWrapper<wgpu::Surface> mSurface;
-
-    // to be recreated when window changes size changes
-    RAIIWrapper<wgpu::SwapChain> mSwapChain;
-    RAIIWrapper<wgpu::Texture> mMultiSamplingTexture;
-    RAIIWrapper<wgpu::Texture> mDepthStencilTexture;
-
-    wgpu::TextureFormat mOutputTextureFormat = wgpu::TextureFormat::Undefined;
-    wgpu::TextureFormat mDepthStencilTextureFormat = wgpu::TextureFormat::Undefined;
-
-    uint32_t mMultiSamplingCount = 4;
+  RaiiWrapper<wgpu::Instance> instance_;
+  RaiiWrapper<wgpu::Adapter> adapter_;
+  RaiiWrapper<wgpu::Device> device_;
+  RaiiWrapper<wgpu::Queue> queue_;
 };
+}  // namespace renderer

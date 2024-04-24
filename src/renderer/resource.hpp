@@ -8,90 +8,43 @@
 #include "src/utils/raii.hpp"
 #include "wgpu_context.hpp"
 
+namespace renderer {
+
 struct ResourceEntry {
-    wgpu::BindGroupEntry bindGroupEntry;
-    wgpu::BindGroupLayoutEntry bindGroupLayoutEntry;
+  wgpu::BindGroupEntry bind_group_entry;
+  wgpu::BindGroupLayoutEntry bind_group_layout_entry;
 };
 
 class Resource {
-public:
-    virtual ResourceEntry resourceEntry() const = 0;
+ public:
+  virtual ResourceEntry resource_entry() const = 0;
 
-    virtual ~Resource() = default;
+  virtual ~Resource() = default;
 };
 
 struct ResourceGroupEntry {
-    wgpu::BindGroup wgpuBindGroup;
-    wgpu::BindGroupLayout wgpuBindGroupLayout;
+  wgpu::BindGroup wgpu_bind_group;
+  wgpu::BindGroupLayout wgpu_bind_group_layout;
 };
 
 class ResourceGroup {
-public:
-    ResourceGroupEntry resourceGroupEntry() {
-        if (!mDirty) {
-            return ResourceGroupEntry{.wgpuBindGroup = mBindGroup, .wgpuBindGroupLayout = mBindGroupLayout};
-        }
+ public:
+  ResourceGroupEntry resource_group_entry();
 
-        auto& context = WGPUContext::getContext();
+  void set_binding_count(uint32_t binding_count);
 
-        auto device = context.getDevice();
+  void bind_resource(uint32_t binding_position,
+                     std::shared_ptr<Resource> resource);
 
-        std::vector<wgpu::BindGroupLayoutEntry> bindGroupLayoutEntries;
-        bindGroupLayoutEntries.reserve(mResources.size());
+  ResourceGroup() = default;
 
-        std::vector<wgpu::BindGroupEntry> bindGroupEntries;
-        bindGroupEntries.reserve(mResources.size());
+ private:
+  std::vector<std::shared_ptr<Resource>> resources_;
+  std::map<uintptr_t, uint32_t> resource_bindings_;
 
-        for (std::shared_ptr<Resource>& resource : mResources) {
-            ResourceEntry resourceEntry = resource->resourceEntry();
+  RaiiWrapper<wgpu::BindGroup> bind_group_;
+  RaiiWrapper<wgpu::BindGroupLayout> bind_group_layout;
 
-            uint32_t binding = mResourceBindings[reinterpret_cast<uintptr_t>(resource.get())];
-
-            resourceEntry.bindGroupEntry.binding = binding;
-            resourceEntry.bindGroupLayoutEntry.binding = binding;
-
-            bindGroupLayoutEntries.push_back(resourceEntry.bindGroupLayoutEntry);
-            bindGroupEntries.push_back(resourceEntry.bindGroupEntry);
-        }
-
-        wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc = wgpu::Default;
-        bindGroupLayoutDesc.entryCount = bindGroupLayoutEntries.size();
-        bindGroupLayoutDesc.entries = bindGroupLayoutEntries.data();
-
-        mBindGroupLayout = device.createBindGroupLayout(bindGroupLayoutDesc);
-
-        wgpu::BindGroupDescriptor bindGroupDesc = wgpu::Default;
-        bindGroupDesc.layout = *mBindGroupLayout;
-        bindGroupDesc.entries = bindGroupEntries.data();
-        bindGroupDesc.entryCount = bindGroupEntries.size();
-
-        mBindGroup = device.createBindGroup(bindGroupDesc);
-
-        mDirty = false;
-        return ResourceGroupEntry{.wgpuBindGroup = mBindGroup, .wgpuBindGroupLayout = mBindGroupLayout};
-    }
-
-    void setBindingCount(uint32_t tBindingCount) {
-        mResources.resize(tBindingCount);
-    }
-    void bindResource(uint32_t tBindingPosition, std::shared_ptr<Resource> tResource) {
-        assert(mResources.size() > tBindingPosition);
-
-        mResourceBindings[reinterpret_cast<uintptr_t>(tResource.get())] = tBindingPosition;
-
-        mResources[tBindingPosition] = std::move(tResource);
-
-        mDirty = true;
-    }
-
-    ResourceGroup() = default;
-
-private:
-    std::vector<std::shared_ptr<Resource>> mResources;
-    std::map<uintptr_t, uint32_t> mResourceBindings;
-
-    RAIIWrapper<wgpu::BindGroup> mBindGroup;
-    RAIIWrapper<wgpu::BindGroupLayout> mBindGroupLayout;
-
-    bool mDirty = true;
+  bool dirty_ = true;
 };
+}  // namespace renderer

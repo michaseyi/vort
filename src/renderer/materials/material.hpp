@@ -7,22 +7,26 @@
 #include "../wgpu_context.hpp"
 #include "src/math/math.hpp"
 
+namespace renderer::materials {
+
 class Material {
-public:
-    virtual void update(uint32_t tIndex) = 0;
+ public:
+  virtual void update(uint32_t index) = 0;
 
-    virtual ResourceGroupEntry resourceGroupEntry() = 0;
+  virtual ResourceGroupEntry resource_group_entry() = 0;
 
-    virtual wgpu::ShaderModule shader() = 0;
+  virtual wgpu::ShaderModule shader() = 0;
 
-    virtual uint32_t uniformOffset() = 0;
+  virtual uint32_t uniform_offset() = 0;
 
-    virtual void setColor(math::vec3 tColor);
-    virtual void setReflectivity(float tReflectivity);
-    virtual void setRoughness(float tRoughness);
-    virtual void setShininess(float tShininess);
+  virtual void set_color(math::vec3 color);
+  virtual void set_reflectivity(float reflectivity);
+  virtual void set_roughness(float roughness);
+  virtual void set_shininess(float shininess);
 
-    virtual void setTexture();
+  virtual void set_texture();
 
-    virtual ~Material();
+  virtual ~Material();
 };
+
+}  // namespace renderer::materials

@@ -1,153 +1,170 @@
 #include "window.hpp"
 
 #include "window_events.hpp"
+
+namespace core {
+
 Window::Window() = default;
 
-Window::Window(GLFWwindow* tWindowHandle) : mWindowHandle(tWindowHandle) {
-    if (mWindowHandle) {
-        glfwGetWindowSize(mWindowHandle, &mWidth, &mHeight);
+Window::Window(GLFWwindow* windwo_handle) : window_handle(windwo_handle) {
+  if (window_handle) {
+    glfwGetWindowSize(window_handle, &width_, &height_);
 
-        updateUserPointer();
+    update_user_pointer();
 
-        glfwGetCursorPos(mWindowHandle, &prevMouseX, &prevMouseY);
+    glfwGetCursorPos(window_handle, &prev_mouse_x, &prev_mouse_y);
 
-        initEventHandlers();
-    }
+    init_event_handlers();
+  }
 }
 
 /**
- * @brief Needs to be called everytime the address of the window object changes.
- *
- */
-void Window::updateUserPointer() {
-    // TODO: Bug if the window object address changes
-    glfwSetWindowUserPointer(mWindowHandle, this);
+   * @brief Needs to be called everytime the address of the window object
+   * changes.
+   *
+   */
+void Window::update_user_pointer() {
+  // TODO: Bug if the window object address changes
+  glfwSetWindowUserPointer(window_handle, this);
 }
-void Window::updateSize() {
-    glfwGetWindowSize(mWindowHandle, &mWidth, &mHeight);
-}
-
-wgpu::Surface Window::getWGPUSurface(WGPUInstance tInstance) {
-    return glfwGetWGPUSurface(tInstance, mWindowHandle);
+void Window::update_size() {
+  glfwGetWindowSize(window_handle, &width_, &height_);
 }
 
-void Window::processEvents() {
-    glfwPollEvents();
+wgpu::Surface Window::get_wgpu_surface(WGPUInstance instance) {
+  return glfwGetWGPUSurface(instance, window_handle);
 }
 
-void Window::waitEvents() {
-    glfwWaitEvents();
+void Window::process_events() {
+  glfwPollEvents();
 }
 
-bool Window::isOpen() {
-    return !glfwWindowShouldClose(mWindowHandle);
+void Window::wait_events() {
+  glfwWaitEvents();
 }
 
-int32_t Window::width() {
-    return mWidth;
+bool Window::is_open() {
+  return !glfwWindowShouldClose(window_handle);
 }
 
-int32_t Window::height() {
-    return mHeight;
+int32_t Window::get_width() {
+  return width_;
+}
+
+int32_t Window::get_height() {
+  return height_;
 }
 
 Window::operator GLFWwindow*() {
-    return mWindowHandle;
+  return window_handle;
 }
 
-void Window::initEventHandlers() {
-    glfwSetCursorPosCallback(mWindowHandle, [](GLFWwindow* windowHandle, double xPos, double yPos) {
-        auto& window = *reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowHandle));
+void Window::init_event_handlers() {
+  glfwSetCursorPosCallback(
+      window_handle, [](GLFWwindow* window_handle, double x_pos, double y_pox) {
+        Window& window =
+            *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window_handle));
 
         PointerMove event;
-        event.x = xPos;
-        event.y = yPos;
-        event.movementX = xPos - window.prevMouseX;
-        event.movementY = yPos - window.prevMouseY;
+        event.x = x_pos;
+        event.y = y_pox;
+        event.movement_x = x_pos - window.prev_mouse_x;
+        event.movement_y = y_pox - window.prev_mouse_y;
 
-        event.clientWidth = window.width();
-        event.clientHeight = window.height();
+        event.client_width = window.get_width();
+        event.client_height = window.get_height();
 
-        window.prevMouseX = xPos;
-        window.prevMouseY = yPos;
-        window.emitEvent(event);
-    });
+        window.prev_mouse_x = x_pos;
+        window.prev_mouse_y = y_pox;
+        window.emit_event(event);
+      });
 
-    glfwSetWindowSizeCallback(mWindowHandle, [](GLFWwindow* windowHandle, int width, int height) {
-        auto& window = *reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowHandle));
+  glfwSetWindowSizeCallback(
+      window_handle, [](GLFWwindow* window_handle, int width, int height) {
+        Window& window =
+            *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window_handle));
 
-        window.updateSize();
+        window.update_size();
 
         WindowResize event;
         event.width = width;
         event.height = height;
 
-        window.emitEvent(event);
-    });
+        window.emit_event(event);
+      });
 
-    glfwSetCursorEnterCallback(mWindowHandle, [](GLFWwindow* windowHandle, int entered) {
-        auto& window = *reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowHandle));
+  glfwSetCursorEnterCallback(
+      window_handle, [](GLFWwindow* window_handle, int entered) {
+        Window& window =
+            *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window_handle));
 
         if (entered == GLFW_TRUE) {
-            glfwGetCursorPos(windowHandle, &window.prevMouseX, &window.prevMouseY);
+          glfwGetCursorPos(window_handle, &window.prev_mouse_x,
+                           &window.prev_mouse_y);
         }
-    });
+      });
 
-    glfwSetMouseButtonCallback(mWindowHandle, [](GLFWwindow* windowHandle, int button, int actions, int mods) {
-        auto& window = *reinterpret_cast<Window*>(glfwGetWindowUserPointer(windowHandle));
+  glfwSetMouseButtonCallback(
+      window_handle,
+      [](GLFWwindow* window_handle, int button, int actions, int mods) {
+        Window& window =
+            *reinterpret_cast<Window*>(glfwGetWindowUserPointer(window_handle));
 
         if (!(button == GLFW_MOUSE_BUTTON_LEFT && actions == GLFW_PRESS)) {
-            return;
+          return;
         }
 
         PointerDown event;
-        event.clientWidth = window.width();
-        event.clientHeight = window.height();
+        event.clieht_width = window.get_width();
+        event.client_height = window.get_height();
 
         double x;
         double y;
 
-        glfwGetCursorPos(windowHandle, &x, &y);
+        glfwGetCursorPos(window_handle, &x, &y);
 
         event.x = x;
         event.y = y;
 
-        window.emitEvent(event);
-    });
+        window.emit_event(event);
+      });
 
-    glfwSetKeyCallback(mWindowHandle, [](GLFWwindow* windowHandle, int key, int scanCode, int actions, int mods) {});
+  glfwSetKeyCallback(window_handle,
+                     [](GLFWwindow* window_handle, int key, int scan_code,
+                        int actions, int mods) {});
 }
 
 Window::operator bool() {
-    return mWindowHandle != nullptr;
+  return window_handle != nullptr;
 }
 
 WindowBuilder::WindowBuilder() {
-    glfwInit();
-    glfwDefaultWindowHints();
+  glfwInit();
+  glfwDefaultWindowHints();
 }
 
-WindowBuilder& WindowBuilder::clientAPI(ClientAPI tClientAPI) {
-    glfwWindowHint(GLFW_CLIENT_API, static_cast<int32_t>(tClientAPI));
-    return *this;
+WindowBuilder& WindowBuilder::client_api(ClientApi client_api) {
+  glfwWindowHint(GLFW_CLIENT_API, static_cast<int32_t>(client_api));
+  return *this;
 }
 
-WindowBuilder& WindowBuilder::resizable(bool tValue) {
-    glfwWindowHint(GLFW_RESIZABLE, static_cast<int>(tValue));
-    return *this;
+WindowBuilder& WindowBuilder::resizable(bool value) {
+  glfwWindowHint(GLFW_RESIZABLE, static_cast<int>(value));
+  return *this;
 }
 
-WindowBuilder& WindowBuilder::title(std::string tTitle) {
-    mTitle = tTitle;
-    return *this;
+WindowBuilder& WindowBuilder::title(std::string title) {
+  title_ = title;
+  return *this;
 }
 
-WindowBuilder& WindowBuilder::size(int32_t tWidth, int32_t tHeight) {
-    mWidth = tWidth;
-    mHeight = tHeight;
-    return *this;
+WindowBuilder& WindowBuilder::size(int32_t width, int32_t height) {
+  width_ = width;
+  height_ = height;
+  return *this;
 }
 
 Window WindowBuilder::build() {
-    return glfwCreateWindow(mWidth, mHeight, mTitle.c_str(), nullptr, nullptr);
+  return glfwCreateWindow(width_, height_, title_.c_str(), nullptr, nullptr);
 }
+}  // namespace core

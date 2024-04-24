@@ -1,17 +1,20 @@
+#pragma once
 
+#include <string_view>
 
+#include "bind_group_entries.hpp"
 #include "src/utils/raii.hpp"
 #include "wgpu_context.hpp"
-
-
-
+namespace renderer {
 class Texture {
-public:
-    Texture() = default;
+ public:
+  Texture(std::string path);
 
-    static Texture createCubeMap();
-    static Texture create2DTexture(std::string tPath);
+  Texture() = default;
 
-private:
-    RAIIWrapper<wgpu::Texture> mWGPUTexture;
+  operator BindGroupEntries::EntryData();
+
+ private:
+  RaiiWrapper<wgpu::Texture> texture_;
 };
+}  // namespace renderer

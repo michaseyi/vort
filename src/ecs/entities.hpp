@@ -11,163 +11,171 @@
 #include "archtype.hpp"
 #include "array_hashmap.hpp"
 
+namespace ecs {
+
 template <typename... T>
 class Query;
 
 struct AppState {
-    char* initializationStage;
-    bool initialized;
-    bool running;
+  std::string initialization_stage;
+  bool initialized;
+  bool running;
 };
 
 const int a = sizeof(AppState);
 
 // TODO: Temporary Entity ID solution. Replace with UUIDs;
-using EntityID = uint32_t;
+using EntityId = uint32_t;
 
 enum class SystemSchedule {
-    Startup,
-    Update,
-    Shutdown,
+  Startup,
+  Update,
+  Shutdown,
 };
 
 template <typename...>
 struct UniqueTypes : std::true_type {};
 
 template <typename T, typename... Rest>
-struct UniqueTypes<T, Rest...> : std::integral_constant<bool, (!std::is_same_v<T, Rest> && ...) && UniqueTypes<Rest...>::value> {
-};
+struct UniqueTypes<T, Rest...>
+    : std::integral_constant<bool, (!std::is_same_v<T, Rest> && ...) &&
+                                       UniqueTypes<Rest...>::value> {};
 
 enum class EntityInterface {
-    None = 0,
-    Mesh,
-    Camera,
-    Light,
-    Scene,
+  None = 0,
+  Mesh,
+  Camera,
+  Light,
+  Scene,
 };
 
 class Entities {
-public:
-    template <typename... Args>
-    using System = void (*)(Args...);
+ public:
+  template <typename... Args>
+  using System = void (*)(Args...);
 
-    using Plugin = std::function<void(Entities&)>;
+  using Plugin = std::function<void(Entities&)>;
 
-    using InitComponentHandler = std::function<void(Entities&, EntityID)>;
-    using DeinitComponentHandler = InitComponentHandler;
+  using InitComponentHandler = std::function<void(Entities&, EntityId)>;
 
-    const static inline uint64_t VOID_ARCHTYPE_HASH = std::numeric_limits<uint64_t>::max();
+  using DeinitComponentHandler = InitComponentHandler;
 
-    const static inline uint32_t ROOT_ENTITY_ID = 0;
+  struct Pointer {
+    u_int16_t archtype_index;
+    uint32_t row_index;
+    std::string name;
+    EntityInterface interface;
+  };
 
-    Entities(const Entities&) = delete;
+  const static inline uint64_t kVoidArchtypeHash =
+      std::numeric_limits<uint64_t>::max();
 
-    Entities& operator()(const Entities&) = delete;
+  const static inline uint32_t kRootEntityId = 0;
 
-    EntityID getParent(EntityID entityID);
+  Entities(const Entities&) = delete;
 
-    std::string& getName(EntityID entityID);
+  Entities();
 
-    EntityInterface getInterface(EntityID entityID);
+  Entities& operator()(const Entities&) = delete;
 
-    const std::vector<EntityID>& getChildren(EntityID parentID = Entities::ROOT_ENTITY_ID);
+  EntityId get_parent(EntityId entityID);
 
-    EntityID newEntity(std::string name, EntityInterface interface, EntityID parentID = Entities::ROOT_ENTITY_ID);
+  std::string& get_name(EntityId entityID);
 
-    void removeEntity(EntityID entityID);
+  EntityInterface get_interface(EntityId entityID);
 
-    template <typename... T>
-    void setComponents(EntityID entityID, T... components);
+  const std::vector<EntityId>& get_children(
+      EntityId parent_id = Entities::kRootEntityId);
 
-    template <typename... T>
-    std::tuple<T&...> getComponents(EntityID entityID);
+  EntityId new_entity(std::string name, EntityInterface interface,
+                      EntityId parent_id = Entities::kRootEntityId);
 
-    template <typename... T>
-    void removeComponents(EntityID entityID);
+  void remove_entity(EntityId entityID);
 
-    struct Pointer {
-        u_int16_t archtypeIndex;
-        uint32_t rowIndex;
-        std::string name;
-        EntityInterface interface;
-    };
+  template <typename... T>
+  void set_components(EntityId entityID, T... components);
 
-    /**
+  template <typename... T>
+  std::tuple<T&...> get_components(EntityId entityID);
+
+  template <typename... T>
+  void remove_components(EntityId entityID);
+
+  /**
      * @brief The handler is called before the componet is added to the entity
      */
-    template <typename T>
-    void setComponentInitHandler(InitComponentHandler handler);
+  template <typename T>
+  void set_component_init_handler(InitComponentHandler handler);
 
-    /**
-     * @brief The handler is called before the componet is removed from the entity
+  /**
+     * @brief The handler is called before the componet is removed from the
+     * entity
      */
-    template <typename T>
-    void setComponentDeinitHandler(DeinitComponentHandler handler);
+  template <typename T>
+  void set_component_deinit_handler(DeinitComponentHandler handler);
 
-    std::vector<ArchTypeStorage>& archtypes();
+  std::vector<ArchTypeStorage>& get_archtypes();
 
-    void run();
+  void run();
 
-    template <typename... T>
-    Entities& addPlugin(Plugin plugin, T... rest);
+  template <typename... T>
+  Entities& add_plugins(Plugin plugin, T... rest);
 
-    template <typename... Args, typename... Rest>
-    Entities& addSystems(SystemSchedule schedule, System<Args...> system, Rest... rest);
+  template <typename... Args, typename... Rest>
+  Entities& add_systems(SystemSchedule schedule, System<Args...> system,
+                        Rest... rest);
 
-    template <typename... T>
-    void setGlobal(T... args);
+  template <typename... T>
+  void set_global(T... args);
 
-    template <typename... T>
-    std::tuple<T&...> getGlobal();
+  template <typename... T>
+  std::tuple<T&...> get_global();
 
-    template <typename... T>
-    Query<T...> query();
+  template <typename... T>
+  Query<T...> query();
 
-    void update();
+  void update();
 
-    uint32_t entityCount();
+  uint32_t get_entity_count();
 
-    Entities();
+  template <typename... T>
+  bool has_components(EntityId entityID);
 
-    template <typename... T>
-    bool hasComponents(EntityID entityID);
+  template <typename T>
+  void traverse(std::function<T(Entities&, EntityId, T)>, T,
+                EntityId rootEntityID = Entities::kRootEntityId);
 
-    template <typename T>
-    void traverse(std::function<T(Entities&, EntityID, T)>, T, EntityID rootEntityID = Entities::ROOT_ENTITY_ID);
+ private:
+  void remove_entity_impl(EntityId entityID, bool detach_from_parent);
+  ArchTypeStorage& arctype_from_entity_id(EntityId entity_id);
+  uint32_t get_entity_row_index_from_id(EntityId entityID);
 
-private:
-    void _removeEntity(EntityID entityID, bool removeFromParent);
+  uint32_t entity_count_ = 0;
+  uint32_t next_entity_id_ = 1;
 
-    uint32_t mEntityCount = 0;
-    uint32_t mNextEntityId = 1;
+  std::unordered_set<EntityId> reusable_entity_ids_;
+  std::unordered_map<EntityId, Pointer> entities_;
+  std::map<std::string, EntityId> entity_name_index_;
+  ArrayHashMap<uint64_t, ArchTypeStorage> archtypes_;
 
-    std::unordered_map<EntityID, Pointer> mEntities;
-    std::map<std::string, EntityID> mNameIndex;
-    ArrayHashMap<uint64_t, ArchTypeStorage> mArchtypes;
+  std::unordered_map<std::type_index, std::shared_ptr<void>> global_variables_;
 
-    ArchTypeStorage& archtypeFromEntityID(EntityID entityID);
+  std::vector<std::function<void(void)>> startup_systems_;
+  std::vector<std::function<void(void)>> update_systems_;
+  std::vector<std::function<void(void)>> shutdown_systems_;
 
-    uint32_t entityRowFromID(EntityID entityID);
+  std::vector<Plugin> plugins_;
 
-    std::unordered_map<std::type_index, std::shared_ptr<void>> mGlobalVariables;
+  std::map<EntityId, std::vector<EntityId>> entity_children_map_;
+  std::map<EntityId, EntityId> entity_parent_map_;
 
-    std::vector<std::function<void(void)>> mStartupSystems;
-    std::vector<std::function<void(void)>> mUpdateSystems;
-    std::vector<std::function<void(void)>> mShutdownSystems;
-
-    std::vector<Plugin> mPlugins;
-
-    std::map<EntityID, std::vector<EntityID>> mChildrenMap;
-
-    std::map<EntityID, EntityID> mParentMap;
-
-    std::unordered_set<EntityID> mReusableEntityIDs;
-
-    std::map<std::type_index, InitComponentHandler> mInitComponentHandlers;
-    std::map<std::type_index, DeinitComponentHandler> mDeinitComponentHandlers;
+  std::map<std::type_index, InitComponentHandler> component_init_handlers_;
+  std::map<std::type_index, DeinitComponentHandler> component_deinit_handlers_;
 };
 
 using World = Entities;
+
+}  // namespace ecs
 
 #define ENTITIES_TEMPLATE_IMPL
 #include "entities.cpp"

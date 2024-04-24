@@ -10,73 +10,83 @@
 #include "array_hashmap.hpp"
 #include "erased_component.hpp"
 
-using EntityID = uint32_t;
+namespace ecs {
+
+using EntityId = uint32_t;
 class ArchTypeStorage {
-public:
-    uint32_t newRow(EntityID entity);
+ public:
+  uint32_t new_row(EntityId entity);
 
-    template <typename T>
-    bool hasComponent();
+  template <typename T>
+  bool has_component();
 
-    bool hasComponent(std::type_index type);
+  bool has_component(std::type_index type);
 
-    template <typename... T>
-    static u_int64_t computeHash();
+  template <typename... T>
+  static u_int64_t compute_hash();
 
-    static u_int64_t computeHash(std::vector<std::type_index>& types);
+  static u_int64_t compute_hash(std::vector<std::type_index>& types);
 
-    template <typename... T>
-    static ArchTypeStorage create();
+  template <typename... T>
+  static ArchTypeStorage create();
 
-    void computeHash();
+  void compute_hash();
 
-    void setHash(u_int64_t hash);
+  void set_hash(u_int64_t hash);
 
-    u_int64_t getHash();
+  u_int64_t get_hash();
 
-    std::vector<EntityID>& entities();
+  std::vector<EntityId>& entities();
 
-    void removeRow(uint32_t rowIndex);
+  void remove_row(uint32_t row_index);
 
-    std::vector<std::type_index>& componentTypes();
+  std::vector<std::type_index>& get_component_types();
 
-    static ArchTypeStorage fromTypeIndex(std::vector<std::type_index>& types);
+  static ArchTypeStorage from_type_index(std::vector<std::type_index>& types);
 
-    ArchTypeStorage clone();
+  ArchTypeStorage clone();
 
-    ArchTypeStorage clone(std::vector<std::type_index>& type);
+  ArchTypeStorage clone(std::vector<std::type_index>& type);
 
-    template <typename T>
-    void set(uint32_t rowIndex, T component);
+  template <typename T>
+  void set(uint32_t row_index, T component);
 
-    template <typename T>
-    void set(T component);
+  template <typename T>
+  void set(T component);
 
-    ArrayHashMap<std::type_index, ErasedComponentStorage>& components();
+  ArrayHashMap<std::type_index, ErasedComponentStorage>&
+  get_component_storages();
 
-    template <typename... T>
-    bool hasComponents();
+  template <typename... T>
+  bool has_components();
 
-    void addComponent(std::type_index type);
+  void add_component(std::type_index type);
 
-    void addComponent(std::type_index type, ErasedComponentStorage componenetStorage);
+  void add_component(std::type_index type,
+                     ErasedComponentStorage erased_component_storage);
 
-    ErasedComponentStorage* getComponent(std::type_index& type);
+  ErasedComponentStorage* get_component(std::type_index& type);
 
-    template <typename T>
-    T& getRow(uint32_t rowIndex);
+  template <typename T>
+  T& get_row(uint32_t row_index);
 
-    EntityID entityIDFromRowIndex(uint32_t rowIndex);
-private:
-    u_int64_t mHash = 0;
-    std::vector<EntityID> mEntityIDs;
-    std::vector<std::type_index> mComponentTypes;
-    ArrayHashMap<std::type_index, ErasedComponentStorage> mComponents;
+  EntityId get_entity_id_from_row_index(uint32_t row_index);
 
-    // TODO: Use a set for tag components since they require no data. Treating them as regular components would waste 1
-    // byte per entity that is assigned the tag.
-    std::unordered_set<std::type_index> mTagComponents;
+ private:
+  u_int64_t hash_ = 0;
+  
+  std::vector<EntityId> entity_ids_;
+  std::vector<std::type_index> component_types_;
+  ArrayHashMap<std::type_index, ErasedComponentStorage>
+      erased_component_storages_;
+
+  // TODO: Use a set for tag components since they require no data. Treating
+  // them as regular components would waste 1 byte per entity that is assigned
+  // the tag.
+  std::unordered_set<std::type_index> tag_components_;
 };
+
+}  // namespace ecs
 
 #define ARCHTYPE_TEMPLATE_IMPL
 #include "archtype.cpp"

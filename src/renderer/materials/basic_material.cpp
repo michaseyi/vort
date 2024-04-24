@@ -2,51 +2,55 @@
 
 #include "../uniforms.hpp"
 
-BasicMaterial::BasicMaterial(BasicMaterialProps tProps) {
-    if (!mInitialized) {
-        basicMaterialUniform.reset(new Uniform{sizeof(BasicMaterialUniforms), true});
-        basicMaterialShader.reset(new Shader("basic_material.wgsl"));
-        mInitialized = true;
-    }
-    mResourceGroup.setBindingCount(1);
-    mResourceGroup.bindResource(0, basicMaterialUniform);
-    mProps = tProps;
-    basicMaterialUniform->increment();
+namespace renderer::materials {
+
+BasicMaterial::BasicMaterial(BasicMaterialProps props) {
+  if (!initialized_) {
+    basic_material_uniform.reset(
+        new Uniform{sizeof(core::BasicMaterialUniforms), true});
+    basic_material_shader.reset(new Shader("basic_material.wgsl"));
+    initialized_ = true;
+  }
+  resource_group_.set_binding_count(1);
+  resource_group_.bind_resource(0, basic_material_uniform);
+  props_ = props;
+  basic_material_uniform->increment();
 }
 
 wgpu::ShaderModule BasicMaterial::shader() {
-    return *basicMaterialShader->shaderModule;
+  return *basic_material_shader->shader_module;
 }
 
-uint32_t BasicMaterial::uniformOffset() {
-    return mCurrentIndex * basicMaterialUniform->stride();
+uint32_t BasicMaterial::uniform_offset() {
+  return current_index_ * basic_material_uniform->stride();
 }
 
-ResourceGroupEntry BasicMaterial::resourceGroupEntry() {
-    return mResourceGroup.resourceGroupEntry();
+ResourceGroupEntry BasicMaterial::resource_group_entry() {
+  return resource_group_.resource_group_entry();
 }
-void BasicMaterial::setColor(math::vec3 tColor) {
-    mProps.color = tColor;
+void BasicMaterial::set_color(math::vec3 color) {
+  props_.color = color;
 }
 
-void BasicMaterial::update(uint32_t tIndex) {
-    if (mIncrementOnNext) {
-        mCurrentIndex++;
-    }
-    if (tIndex < mLastSetIndex) {
-        mCurrentIndex = 0;
-    }
+void BasicMaterial::update(uint32_t index) {
+  if (increment_on_next_) {
+    current_index_++;
+  }
+  if (index < last_set_index_) {
+    current_index_ = 0;
+  }
 
-    mIncrementOnNext = true;
+  increment_on_next_ = true;
 
-    mLastSetIndex = tIndex + 1;
-    BasicMaterialUniforms uniform{};
+  last_set_index_ = index + 1;
+  core::BasicMaterialUniforms uniform{};
 
-    uniform.base_color = mProps.color;
-    uniform.alpha = 1.0f;
-    basicMaterialUniform->set(mCurrentIndex, 0, sizeof(uniform), &uniform);
+  uniform.base_color = props_.color;
+  uniform.alpha = 1.0f;
+  basic_material_uniform->set(current_index_, 0, sizeof(uniform), &uniform);
 }
 
 BasicMaterial::~BasicMaterial() {
-    basicMaterialUniform->decrement();
+  basic_material_uniform->decrement();
 }
+}  // namespace renderer::materials

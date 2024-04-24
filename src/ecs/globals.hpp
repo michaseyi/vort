@@ -1,39 +1,43 @@
 #pragma once
 #include <cstdint>
 #include <iostream>
+
+namespace ecs {
+
 template <typename... T>
 class Global {
-public:
-    Global(){};
-    void fill(Entities *world) {
-        mWorld = world;
-        auto globals = mWorld->getGlobal<T...>();
+ public:
+  Global(){};
+  void fill(Entities* world) {
+    world_ = world;
+    auto globals = world_->get_global<T...>();
 
-        (
-            [&]() {
-                std::get<T *>(mValues) = &std::get<T &>(globals);
-            }(),
-            ...);
-    }
+    (
+        [&]() {
+          std::get<T*>(values_) = &std::get<T&>(globals);
+        }(),
+        ...);
+  }
 
-    const std::tuple<T *...> &values() const {
-        return mValues;
-    }
+  const std::tuple<T*...>& values() const { return values_; }
 
-private:
-    std::tuple<T *...> mValues;
-    Entities *mWorld;
+ private:
+  std::tuple<T*...> values_;
+  Entities* world_;
 };
+
+template <size_t I, typename... T>
+auto& get(const ecs::Global<T...>& obj) {
+  return *std::get<I>(obj.values());
+}
+
+}  // namespace ecs
 
 template <typename... T>
-struct std::tuple_size<Global<T...>> : std::integral_constant<size_t, sizeof...(T)> {};
+struct std::tuple_size<ecs::Global<T...>>
+    : std::integral_constant<size_t, sizeof...(T)> {};
 
 template <size_t I, typename... T>
-struct std::tuple_element<I, Global<T...>> {
-    using type = decltype(std::get<I>(std::tuple<T...>())) &;
+struct std::tuple_element<I, ecs::Global<T...>> {
+  using type = decltype(std::get<I>(std::tuple<T...>()))&;
 };
-
-template <size_t I, typename... T>
-auto &get(const Global<T...> &obj) {
-    return *std::get<I>(obj.values());
-}

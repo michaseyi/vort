@@ -1,37 +1,41 @@
 #pragma once
-#include "resource.hpp"
+#include "bind_group_entries.hpp"
 #include "src/utils/raii.hpp"
 #include "wgpu_context.hpp"
 
-class Sampler : public Resource {
-public:
-    Sampler() {
-        wgpu::SamplerDescriptor samplerDesc = wgpu::Default;
+namespace renderer {
 
-        auto &context = WGPUContext::getContext();
-        auto device = context.getDevice();
+class Sampler {
+ public:
+  Sampler() {
+    wgpu::SamplerDescriptor sampler_desc = wgpu::Default;
 
-        samplerDesc.addressModeU = wgpu::AddressMode::Repeat;
-        samplerDesc.addressModeV = wgpu::AddressMode::Repeat;
-        samplerDesc.addressModeW = wgpu::AddressMode::Repeat;
+    auto& context = WgpuContext::get();
+    auto device = context.get_device();
 
-        samplerDesc.minFilter = wgpu::FilterMode::Nearest;
-        samplerDesc.magFilter = wgpu::FilterMode::Linear;
+    sampler_desc.addressModeU = wgpu::AddressMode::Repeat;
+    sampler_desc.addressModeV = wgpu::AddressMode::Repeat;
+    sampler_desc.addressModeW = wgpu::AddressMode::Repeat;
 
-        samplerDesc.mipmapFilter = wgpu::MipmapFilterMode::Linear;
+    sampler_desc.minFilter = wgpu::FilterMode::Nearest;
+    sampler_desc.magFilter = wgpu::FilterMode::Linear;
 
-        WGPUSampler = device.createSampler(samplerDesc);
-    }
+    sampler_desc.mipmapFilter = wgpu::MipmapFilterMode::Linear;
+    sampler_desc.label = "Texture Sampler";
 
-    ResourceEntry resourceEntry() const override {
-        ResourceEntry entry{};
-        entry.bindGroupLayoutEntry.sampler.type = wgpu::SamplerBindingType::Comparison;
-        entry.bindGroupLayoutEntry.visibility = wgpu::ShaderStage::Vertex | wgpu::ShaderStage::Fragment;
+    sampler_ = device.createSampler(sampler_desc);
+  }
 
-        entry.bindGroupEntry.sampler = *WGPUSampler;
-        return entry;
-    }
+  operator BindGroupEntries::EntryData() {
+    BindGroupEntries::EntryData entry_data;
+    entry_data.entry.sampler = *sampler_;
+    entry_data.layout_entry.sampler.type = wgpu::SamplerBindingType::Filtering;
+    entry_data.layout_entry.visibility =
+        wgpu::ShaderStage::Fragment | wgpu::ShaderStage::Compute;
+    return entry_data;
+  }
 
-private:
-    RAIIWrapper<wgpu::Sampler> WGPUSampler;
+ private:
+  RaiiWrapper<wgpu::Sampler> sampler_;
 };
+}  // namespace renderer

@@ -3,23 +3,27 @@
 #include "src/utils/utils.hpp"
 #include "wgpu_context.hpp"
 
+namespace renderer {
+
 class Shader {
-public:
-    Shader(std::string path) {
-        auto shaderCode = preprocessShader(loadShaderCode(path));
-        wgpu::ShaderModuleWGSLDescriptor shaderModuleWGSLDesc = wgpu::Default;
+ public:
+  Shader(std::string path) {
+    auto shader_code = preprocess_shader(load_shader_code(path));
+    wgpu::ShaderModuleWGSLDescriptor shader_module_wgsl_desc = wgpu::Default;
 
-        shaderModuleWGSLDesc.code = shaderCode.c_str();
-        shaderModuleWGSLDesc.chain.sType = wgpu::SType::ShaderModuleWGSLDescriptor;
+    shader_module_wgsl_desc.code = shader_code.c_str();
+    shader_module_wgsl_desc.chain.sType =
+        wgpu::SType::ShaderModuleWGSLDescriptor;
 
-        wgpu::ShaderModuleDescriptor shaderModuleDesc = wgpu::Default;
+    wgpu::ShaderModuleDescriptor shader_module_desc = wgpu::Default;
 
-        shaderModuleDesc.nextInChain = &shaderModuleWGSLDesc.chain;
+    shader_module_desc.nextInChain = &shader_module_wgsl_desc.chain;
 
-        auto &context = WGPUContext::getContext();
-        auto device = context.getDevice();
-        shaderModule = device.createShaderModule(shaderModuleDesc);
-    }
+    auto& context = WgpuContext::get();
+    auto device = context.get_device();
+    shader_module = device.createShaderModule(shader_module_desc);
+  }
 
-    RAIIWrapper<wgpu::ShaderModule> shaderModule;
+  RaiiWrapper<wgpu::ShaderModule> shader_module;
 };
+}  // namespace renderer

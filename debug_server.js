@@ -72,7 +72,6 @@ class FileServer {
 	}
 }
 
-
 const port = process.argv[2]
 const dirPath = process.argv[3]
 

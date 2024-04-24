@@ -3,66 +3,58 @@
 #include <typeinfo>
 
 template <typename T>
-struct DefaultRAIIDeleter {
-    static void deleter(T& t) {
-        t.release();
-    }
+struct DefaultRaiiDeleter {
+  static void deleter(T& t) { t.release(); }
 };
 
 template <typename T>
-struct RAIIDeleter : DefaultRAIIDeleter<T> {};
+struct RaiiDeleter : DefaultRaiiDeleter<T> {};
 
 template <typename T>
-class RAIIWrapper {
-public:
-    RAIIWrapper() = default;
-    RAIIWrapper(T tRaw) : mRaw(tRaw){};
+class RaiiWrapper {
+ public:
+  RaiiWrapper() = default;
+  RaiiWrapper(T tRaw) : raw_(tRaw){};
 
-    RAIIWrapper(std::nullptr_t) : mRaw(nullptr){};
+  RaiiWrapper(std::nullptr_t) : raw_(nullptr){};
 
-    RAIIWrapper& operator=(RAIIWrapper&& tOther) {
-        if (mRaw) {
-            RAIIDeleter<T>::deleter(mRaw);
-        }
-        mRaw = tOther.mRaw;
-        tOther.mRaw = nullptr;
-        return *this;
+  RaiiWrapper& operator=(RaiiWrapper&& other) {
+    if (raw_) {
+      RaiiDeleter<T>::deleter(raw_);
     }
-    RAIIWrapper(RAIIWrapper&& tOther) {
-        mRaw = tOther.mRaw;
-        tOther.mRaw = nullptr;
+    raw_ = other.raw_;
+    other.raw_ = nullptr;
+    return *this;
+  }
+  RaiiWrapper(RaiiWrapper&& other) {
+    raw_ = other.raw_;
+    other.raw_ = nullptr;
+  }
+
+  RaiiWrapper& operator=(const RaiiWrapper& other) = delete;
+
+  RaiiWrapper(const RaiiWrapper& other) = delete;
+
+  auto operator->() {
+    if constexpr (std::is_pointer_v<T>) {
+      return raw_;
+    } else {
+      return &raw_;
     }
+  }
 
-    RAIIWrapper& operator=(const RAIIWrapper& tOther) = delete;
+  T& operator*() { return raw_; }
 
-    RAIIWrapper(const RAIIWrapper& tOther) = delete;
+  const T& operator*() const { return raw_; }
 
-    auto operator->() {
-        if constexpr (std::is_pointer_v<T>) {
-            return mRaw;
-        } else {
-            return &mRaw;
-        }
+  ~RaiiWrapper() {
+    if (raw_) {
+      RaiiDeleter<T>::deleter(raw_);
     }
+  }
 
-    T& operator*() {
-        return mRaw;
-    }
+  operator T() { return raw_; }
 
-    const T& operator*() const {
-        return mRaw;
-    }
-
-    ~RAIIWrapper() {
-        if (mRaw) {
-            RAIIDeleter<T>::deleter(mRaw);
-        }
-    }
-
-    operator T() {
-        return mRaw;
-    }
-
-private:
-    T mRaw = nullptr;
+ private:
+  T raw_ = nullptr;
 };

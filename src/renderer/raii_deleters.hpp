@@ -3,17 +3,22 @@
 #include "wgpu_context.hpp"
 
 template <>
-struct RAIIDeleter<wgpu::Buffer> {
-    static void deleter(wgpu::Buffer &tBuffer) {
-        tBuffer.destroy();
-        tBuffer.release();
-    }
+struct RaiiDeleter<wgpu::Buffer> {
+  static void deleter(wgpu::Buffer& buffer) {
+    buffer.destroy();
+    buffer.release();
+  }
 };
 
 template <>
-struct RAIIDeleter<wgpu::Texture> {
-    static void deleter(wgpu::Texture &tTexture) {
-        tTexture.destroy();
-        tTexture.release();
-    }
+struct RaiiDeleter<wgpu::Texture> {
+  static void deleter(wgpu::Texture& texture) {
+    texture.destroy();
+    texture.release();
+  }
+};
+
+template <>
+struct RaiiDeleter<wgpu::SwapChain> {
+  static void deleter(wgpu::SwapChain& swapchain) { swapchain.release(); }
 };

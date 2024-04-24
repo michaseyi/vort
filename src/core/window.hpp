@@ -11,70 +11,69 @@
 #include "src/utils/raii.hpp"
 
 template <>
-struct RAIIDeleter<GLFWwindow*> {
-    static void deleter(GLFWwindow* tRaw) {
-        glfwDestroyWindow(tRaw);
-    }
+struct RaiiDeleter<GLFWwindow*> {
+  static void deleter(GLFWwindow* raw) { glfwDestroyWindow(raw); }
 };
+namespace core {
 
 class Window : public EventEmitter {
-public:
-    Window();
+ public:
+  Window();
 
-    Window(GLFWwindow* tWindowHandle);
+  Window(GLFWwindow* window_handle);
 
-    wgpu::Surface getWGPUSurface(WGPUInstance tInstance);
+  wgpu::Surface get_wgpu_surface(WGPUInstance instance);
 
-    void processEvents();
+  void process_events();
 
-    void updateUserPointer();
+  void update_user_pointer();
 
-    void waitEvents();
+  void wait_events();
 
-    bool isOpen();
+  bool is_open();
 
-    int32_t width();
+  int32_t get_width();
 
-    int32_t height();
+  int32_t get_height();
 
-    void updateSize();
+  void update_size();
 
-    operator GLFWwindow*();
+  operator GLFWwindow*();
 
-    operator bool();
+  operator bool();
 
-    double prevMouseX = 0;
-    double prevMouseY = 0;
+  double prev_mouse_x = 0;
+  double prev_mouse_y = 0;
 
-private:
-    void initEventHandlers();
+ private:
+  void init_event_handlers();
 
-private:
-    int32_t mWidth = 0;
-    int32_t mHeight = 0;
-    RAIIWrapper<GLFWwindow*> mWindowHandle;
+  int32_t width_ = 0;
+  int32_t height_ = 0;
+  RaiiWrapper<GLFWwindow*> window_handle;
 };
 
-enum class ClientAPI {
-    None = 0,
+enum class ClientApi {
+  None = 0,
 };
 
 class WindowBuilder {
-public:
-    WindowBuilder();
+ public:
+  WindowBuilder();
 
-    WindowBuilder& clientAPI(ClientAPI tClientAPI);
+  WindowBuilder& client_api(ClientApi client_api);
 
-    WindowBuilder& resizable(bool tValue);
+  WindowBuilder& resizable(bool value);
 
-    WindowBuilder& title(std::string tTitle);
+  WindowBuilder& title(std::string title);
 
-    WindowBuilder& size(int32_t tWidth, int32_t tHeight);
+  WindowBuilder& size(int32_t width, int32_t height);
 
-    Window build();
+  Window build();
 
-private:
-    int32_t mWidth = 0;
-    int32_t mHeight = 0;
-    std::string mTitle;
+ private:
+  int32_t width_ = 0;
+  int32_t height_ = 0;
+  std::string title_;
 };
+}  // namespace core

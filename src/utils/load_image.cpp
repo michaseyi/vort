@@ -9,15 +9,16 @@
 #include "stb_image.h"
 #include "utils.hpp"
 
-Image loadImage(std::string tPath) {
-    std::vector<uint8_t> buffer = loadBuffer(tPath);
+Image load_image(std::string tPath) {
+  std::vector<uint8_t> buffer = load_buffer(tPath);
 
-    Image image;
+  Image image;
 
-    image.buffer.reset(stbi_load_from_memory(buffer.data(), buffer.size(), &image.width, &image.height,
-                                             &image.channelCount, 0));
+  image.buffer.reset(stbi_load_from_memory(buffer.data(), buffer.size(),
+                                           &image.width, &image.height,
+                                           &image.channel_count, 4));
 
-    assert(image.buffer && "Error decoding image");
+  assert(image.buffer && "Error decoding image");
 
-    return image;
+  return image;
 }

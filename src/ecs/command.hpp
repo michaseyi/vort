@@ -2,39 +2,41 @@
 #include <cstdint>
 
 #include "entities.hpp"
+namespace ecs {
 
 class Command {
-public:
-    void fill(Entities* world) {
-        mWorld = world;
-    }
+ public:
+  void fill(Entities* world) { world_ = world; }
 
-    template <typename... T>
-    Query<T...> query() {
-        Query<T...> result{};
+  template <typename... T>
+  Query<T...> query() {
+    Query<T...> result{};
 
-        result.fill(mWorld);
-        return result;
-    }
+    result.fill(world_);
+    return result;
+  }
 
-    template <typename... T>
-    void removeComponents(EntityID entity) {
-        assert(mWorld);
+  template <typename... T>
+  void remove_components(EntityId entity) {
+    assert(world_);
 
-        mWorld->removeComponents<T...>(entity);
-    }
+    world_->remove_components<T...>(entity);
+  }
 
-    template <typename... T>
-    void setGlobal(T... values) {
-        assert(mWorld);
-        mWorld->setGlobal<T...>(std::move(values)...);
-    }
+  template <typename... T>
+  void set_global(T... values) {
+    assert(world_);
+    world_->set_global<T...>(std::move(values)...);
+  }
 
-    template <typename... T>
-    auto getGlobal() {
-        return mWorld->getGlobal<T...>();
-    }
+  template <typename... T>
+  auto get_global() {
+    return world_->get_global<T...>();
+  }
 
-private:
-    Entities* mWorld;
+  Entities& get_world() { return *world_; }
+
+ private:
+  Entities* world_;
 };
+}  // namespace ecs

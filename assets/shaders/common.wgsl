@@ -1,4 +1,35 @@
-#import "light"
+// #define_import_path vort::common
+
+
+struct AmbientLight {
+    base_color: vec3<f32>,
+    intensity: f32
+}
+
+struct PointLight {
+    position: vec3<f32>,
+    intensity: f32,
+    color: vec3<f32>,
+    attenuation_coefficients: vec3<f32>,
+};
+
+struct DirectionalLight {
+    direction: vec3<f32>,
+    intensity: f32,
+    color: vec3<f32>,
+    attenuation_coefficients: vec3<f32>,
+};
+
+struct SpotLight {
+    position: vec3<f32>,
+    inner_cone_angle: f32,
+    direction: vec3<f32>,
+    outer_cone_angle: f32,
+    color: vec3<f32>,
+    intensity: f32,
+    attenuation_coefficients: vec3<f32>,
+};
+
 
 struct CommonUniforms {
     camera: Camera,

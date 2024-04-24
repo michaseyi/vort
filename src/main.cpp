@@ -1,7 +1,8 @@
-#include "core/editor_plugin.hpp"
+#include "core/config.hpp"
+#include "core/plugins/editor_plugin.hpp"
 
-int32_t main() {
-    World().addPlugin(EditorPlugin()).run();
-
-    return 0;
+int32_t main(int32_t argc, char** argv) {
+  core::Config::init(argc, argv);
+  ecs::World().add_plugins(core::plugins::EditorPlugin()).run();
+  return 0;
 }

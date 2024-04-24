@@ -1,7 +1,10 @@
 #pragma once
+#include <coroutine>
 #include <cstdint>
 
 #include "entities.hpp"
+
+namespace ecs {
 template <typename... T>
 class Tags {};
 
@@ -10,124 +13,113 @@ class Columns {};
 
 template <typename... T>
 class Query {
-    static_assert(false);
+  static_assert(false && "Requires Tag names");
 };
 
 template <typename... T, typename... U>
 class Query<Columns<T...>, Tags<U...>> {
-    static_assert(UniqueTypes<T...>::value);
-    static_assert(UniqueTypes<U...>::value);
+  static_assert(UniqueTypes<T...>::value);
+  static_assert(UniqueTypes<U...>::value);
 
-public:
-    static inline std::vector<std::type_index> queryComponents = {std::type_index(typeid(T))..., std::type_index(typeid(U))...};
+ public:
+  void fill(Entities* world) {
+    world_ = world;
+    // auto &archtypes = world->archtypes();
+  };
 
-    void fill(Entities *world) {
-        mWorld = world;
+  // It is important to note that operations that could create or remove
+  // archtypes, create or remove component storages, affect the row index of
+  // an entity should not be performed while a query object iterator is in use
+  // as it can lead to undefined behaviour. Only after you are done using the
+  // iterator is it safe to perform these actions.
 
-        auto &archtypes = world->archtypes();
+  // TODO: Invalidate any iterator when any of the cases above happens.
+  // Store a pointer to each iterator, and when any mutation occurs to the
+  // Entities, invalidate all stored iterators.
+  struct ResultEntry {
+    EntityId entityId;
+    std::tuple<T*...> components;
+  };
 
-        for (uint32_t i = 1; i < archtypes.size(); i++) {
-            if (archtypes[i].hasComponents<T..., U...>() && archtypes[i].entities().size() > 0) {
-                mStartingArchtypeIndex = i;
-                mStartingRowIndex = 0;
-                mEmptyResult = false;
-                break;
-            }
-        }
+  class Iterator {
+   public:
+    friend class Query<Columns<T...>, Tags<U...>>;
+    struct promise_type {
+      ResultEntry current_value;
+      auto get_return_object() {
+        return std::coroutine_handle<promise_type>::from_promise(*this);
+      }
+
+      auto initial_suspend() { return std::suspend_always{}; }
+      auto final_suspend() noexcept { return std::suspend_always{}; }
+      void return_void() {}
+      void unhandled_exception() { std::terminate(); }
+      auto yield_value(ResultEntry value) {
+        current_value = value;
+        return std::suspend_always{};
+      }
     };
 
-    // It is important to note that operations that could create or remove archtypes, create or remove component
-    // storages, affect the row index of an entity should not be performed while a query object iterator is in use
-    // as it can lead to undefined behaviour. Only after you are done using the iterator is it safe to perform these
-    // actions.
+    Iterator(std::coroutine_handle<promise_type> coroutine_handle)
+        : coroutine_handle_(coroutine_handle) {}
 
-    // TODO: Invalidate any iterator when any of the cases above happens.
-    // Store a pointer to each iterator, and when any mutation occurs to the Entities, invalidate all stored iterators.
-    class Iterator {
-    public:
-        Iterator(Entities *world, uint32_t currentArchtypeIndex, uint32_t currentRowIndex, bool ended = false)
-            : mWorld(world),
-              mCurrentArchtypeIndex(currentArchtypeIndex),
-              mCurrentRowIndexInArchtype(currentRowIndex),
-              mEnded(ended) {
-            std::vector<std::type_index> queryComponents = {std::type_index(typeid(T))..., std::type_index(typeid(U))...};
-        }
-
-        Iterator &operator++(int) {
-            return next();
-        }
-
-        Iterator &operator++() {
-            return next();
-        }
-
-        EntityID currentEntityID() {
-            assert(!mEnded);
-
-            auto &archtype = mWorld->archtypes()[mCurrentArchtypeIndex];
-            return archtype.entityIDFromRowIndex(mCurrentRowIndexInArchtype);
-        }
-
-        inline Iterator &next() {
-            assert(!mEnded);
-
-            auto &archtypes = mWorld->archtypes();
-            auto &currentArchtype = archtypes[mCurrentArchtypeIndex];
-
-            if (currentArchtype.entities().size() > mCurrentRowIndexInArchtype + 1) {
-                mCurrentRowIndexInArchtype++;
-            } else {
-                for (size_t i = mCurrentArchtypeIndex + 1; i < archtypes.size(); i++) {
-                    if (archtypes[i].hasComponents<T..., U...>()) {
-                        mCurrentArchtypeIndex = i;
-                        mCurrentRowIndexInArchtype = 0;
-                        return *this;
-                    }
-                }
-                mEnded = true;
-                mCurrentArchtypeIndex = 0;
-                mCurrentRowIndexInArchtype = 0;
-            }
-            return *this;
-        }
-
-        std::tuple<T &...> operator*() {
-            assert(!mEnded);
-
-            // TODO: optimize so we use the linear array index to access component storages instead of going through the
-            // hash map of the type everytime. this would be very useful when the next entity with the required types is
-            // in the current archtype.
-
-            auto &archtype = mWorld->archtypes()[mCurrentArchtypeIndex];
-            return std::make_tuple(std::reference_wrapper<T>(archtype.getRow<T>(mCurrentRowIndexInArchtype))...);
-        }
-
-        bool operator!=(const Iterator &rhs) {
-            return !(mEnded == rhs.mEnded && mCurrentArchtypeIndex == rhs.mCurrentArchtypeIndex &&
-                     mCurrentRowIndexInArchtype == rhs.mCurrentRowIndexInArchtype);
-        };
-
-    private:
-        Entities *mWorld;
-        uint32_t mCurrentArchtypeIndex;
-        uint32_t mCurrentRowIndexInArchtype;
-        bool mEnded = false;
-    };
-
-    Iterator begin() {
-        return Iterator{mWorld, mStartingArchtypeIndex, mStartingRowIndex, mEmptyResult};
-    };
-    Iterator end() {
-        return Iterator{mWorld, 0, 0, true};
-    };
-
-    auto single() {
-        return *begin();
+    auto operator*() {
+      return std::tie(*std::get<T*>(
+          coroutine_handle_.promise().current_value.components)...);
     }
 
-private:
-    Entities *mWorld;
-    uint32_t mStartingArchtypeIndex = 0;
-    uint32_t mStartingRowIndex = 0;
-    bool mEmptyResult = true;
+    auto currentEntityID() {
+      return coroutine_handle_.promise().current_value.entityId;
+    }
+
+    bool operator==(std::default_sentinel_t) const {
+      return coroutine_handle_.done();
+    }
+
+    Iterator& operator++() {
+      if (!coroutine_handle_.done()) {
+        coroutine_handle_.resume();
+      }
+      return *this;
+    }
+
+   private:
+    Iterator& begin() {
+      if (!coroutine_handle_.done()) {
+        coroutine_handle_.resume();
+      }
+      return *this;
+    }
+
+    std::coroutine_handle<promise_type> coroutine_handle_;
+  };
+
+  Iterator begin() {
+    auto range_generator = [&]() -> Iterator {
+      auto& archtypes = world_->get_archtypes();
+
+      for (uint32_t i = 1; i < archtypes.size(); i++) {
+        if (archtypes[i].has_components<T..., U...>()) {
+          for (auto& entity : archtypes[i].entities()) {
+            auto components = world_->get_components<T...>(entity);
+            co_yield ResultEntry{entity,
+                                 std::make_tuple(&std::get<T&>(components)...)};
+          }
+        }
+      }
+    };
+
+    auto range = range_generator();
+    range.begin();
+    return range;
+  }
+
+  std::default_sentinel_t end() { return {}; }
+
+  auto single() { return *begin(); }
+
+ private:
+  Entities* world_;
 };
+
+}  // namespace ecs

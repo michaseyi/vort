@@ -1,24 +1,26 @@
 #pragma once
-
+namespace core {
 struct PointerMove {
-    float x;
-    float y;
-    float movementX;
-    float movementY;
+  float x;
+  float y;
+  float movement_x;
+  float movement_y;
 
-    int clientWidth;
-    int clientHeight;
+  int client_width;
+  int client_height;
 };
 
 struct WindowResize {
-    int width;
-    int height;
+  int width;
+  int height;
 };
 
 struct PointerDown {
-    int x;
-    int y;
+  int x;
+  int y;
 
-    int clientWidth;
-    int clientHeight;
+  int clieht_width;
+  int client_height;
 };
+
+}  // namespace core
