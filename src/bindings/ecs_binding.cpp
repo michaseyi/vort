@@ -44,7 +44,8 @@ std::vector<ecs::EntityId> EcsBinding::get_entity_children(
 }
 
 ecs::EntityId EcsBinding::create_entity(ecs::EntityId parent_id) {
-  return world_->new_entity("Entity0", ecs::EntityInterface::None, parent_id);
+  return world_->create_entity("Entity0", ecs::EntityInterface::None,
+                               parent_id);
 }
 
 void EcsBinding::remove_entity(ecs::EntityId entity_id) {
@@ -72,7 +73,7 @@ void EcsBinding::set_world(ecs::World& world) {
 
 ecs::EntityId EcsBinding::create_cube_mesh(ecs::EntityId parent_id) {
   auto new_entity_id =
-      world_->new_entity("Cube0", ecs::EntityInterface::Mesh, parent_id);
+      world_->create_entity("Cube0", ecs::EntityInterface::Mesh, parent_id);
 
   world_->set_components(new_entity_id, core::Position(0.0f), core::Scale(1.0f),
                          core::Orientation(),
@@ -85,7 +86,7 @@ ecs::EntityId EcsBinding::create_cube_mesh(ecs::EntityId parent_id) {
 }
 ecs::EntityId EcsBinding::create_cylinder_mesh(ecs::EntityId parent_id) {
   auto new_entity_id =
-      world_->new_entity("Cylinder0", ecs::EntityInterface::Mesh, parent_id);
+      world_->create_entity("Cylinder0", ecs::EntityInterface::Mesh, parent_id);
 
   world_->set_components(
       new_entity_id, core::Position(0.0f), core::Scale(1.0f),
@@ -99,7 +100,7 @@ ecs::EntityId EcsBinding::create_cylinder_mesh(ecs::EntityId parent_id) {
 
 ecs::EntityId EcsBinding::create_cone_mesh(ecs::EntityId parent_id) {
   auto new_entity_id =
-      world_->new_entity("Cone0", ecs::EntityInterface::Mesh, parent_id);
+      world_->create_entity("Cone0", ecs::EntityInterface::Mesh, parent_id);
 
   world_->set_components(
       new_entity_id, core::Position(0.0f), core::Scale(1.0f),
@@ -113,7 +114,7 @@ ecs::EntityId EcsBinding::create_cone_mesh(ecs::EntityId parent_id) {
 
 ecs::EntityId EcsBinding::create_torus_mesh(ecs::EntityId parent_id) {
   auto new_entity_id =
-      world_->new_entity("Torus0", ecs::EntityInterface::Mesh, parent_id);
+      world_->create_entity("Torus0", ecs::EntityInterface::Mesh, parent_id);
   world_->set_components(
       new_entity_id, core::Position(0.0f), core::Scale(1.0f),
       core::Orientation(),
@@ -127,7 +128,7 @@ ecs::EntityId EcsBinding::create_torus_mesh(ecs::EntityId parent_id) {
 
 ecs::EntityId EcsBinding::create_uv_sphere_mesh(ecs::EntityId parent_id) {
   auto new_entity_id =
-      world_->new_entity("UVSphere0", ecs::EntityInterface::Mesh, parent_id);
+      world_->create_entity("UVSphere0", ecs::EntityInterface::Mesh, parent_id);
 
   world_->set_components(new_entity_id, core::Position(0.0f), core::Scale(1.0f),
                          core::Orientation(),
@@ -140,7 +141,7 @@ ecs::EntityId EcsBinding::create_uv_sphere_mesh(ecs::EntityId parent_id) {
 
 ecs::EntityId EcsBinding::create_plane_mesh(ecs::EntityId parent_id) {
   auto new_entity_id =
-      world_->new_entity("Plane0", ecs::EntityInterface::Mesh, parent_id);
+      world_->create_entity("Plane0", ecs::EntityInterface::Mesh, parent_id);
 
   world_->set_components(new_entity_id, core::Position(0.0f, -10.0f, 0.0f),
                          core::Scale(1.0f), core::Orientation(),
@@ -266,7 +267,6 @@ void EcsBinding::update_render_output(uintptr_t canvas_selector) {
 
   target->update_on_next_render = true;
 }
-
 
 EMSCRIPTEN_BINDINGS(Vort) {
   emscripten::function("globalGetAppState", EcsBinding::get_engine_state);

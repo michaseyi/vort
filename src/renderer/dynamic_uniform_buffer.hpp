@@ -2,6 +2,8 @@
 
 #include "bind_group_entries.hpp"
 #include "wgpu_context.hpp"
+#include <cmath>
+#include <optional>
 namespace renderer {
 template <typename T>
   requires(sizeof(T) % 16 == 0)

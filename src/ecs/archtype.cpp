@@ -56,7 +56,7 @@ bool ArchTypeStorage::has_component() {
 }
 
 template <typename... T>
-u_int64_t ArchTypeStorage::compute_hash() {
+uint64_t ArchTypeStorage::compute_hash() {
   std::vector<std::type_index> types{std::type_index(typeid(T))...};
   return compute_hash(types);
 }
@@ -82,10 +82,10 @@ bool ArchTypeStorage::has_component(std::type_index type) {
   return false;
 }
 
-u_int64_t ArchTypeStorage::compute_hash(std::vector<std::type_index>& types) {
+uint64_t ArchTypeStorage::compute_hash(std::vector<std::type_index>& types) {
   std::sort(types.begin(), types.end(), std::greater<std::type_index>());
 
-  u_int64_t hash = 0;
+  uint64_t hash = 0;
 
   for (auto& type : types) {
     hash ^= type.hash_code();
@@ -97,11 +97,11 @@ void ArchTypeStorage::compute_hash() {
   hash_ = compute_hash(component_types_);
 }
 
-void ArchTypeStorage::set_hash(u_int64_t hash) {
+void ArchTypeStorage::set_hash(uint64_t hash) {
   hash_ = hash;
 }
 
-u_int64_t ArchTypeStorage::get_hash() {
+uint64_t ArchTypeStorage::get_hash() {
   return hash_;
 }
 

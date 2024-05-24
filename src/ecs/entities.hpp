@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <type_traits>
+#include <cstdint>
 
 #include "archtype.hpp"
 #include "array_hashmap.hpp"
@@ -21,8 +22,6 @@ struct AppState {
   bool initialized;
   bool running;
 };
-
-const int a = sizeof(AppState);
 
 // TODO: Temporary Entity ID solution. Replace with UUIDs;
 using EntityId = uint32_t;
@@ -41,12 +40,14 @@ struct UniqueTypes<T, Rest...>
     : std::integral_constant<bool, (!std::is_same_v<T, Rest> && ...) &&
                                        UniqueTypes<Rest...>::value> {};
 
-enum class EntityInterface {
+enum class EntityInterface : uint8_t {
   None = 0,
   Mesh,
   Camera,
   Light,
   Scene,
+  SkinnedMesh,
+  Joint
 };
 
 class Entities {
@@ -61,7 +62,7 @@ class Entities {
   using DeinitComponentHandler = InitComponentHandler;
 
   struct Pointer {
-    u_int16_t archtype_index;
+    uint16_t archtype_index;
     uint32_t row_index;
     std::string name;
     EntityInterface interface;
@@ -87,8 +88,12 @@ class Entities {
   const std::vector<EntityId>& get_children(
       EntityId parent_id = Entities::kRootEntityId);
 
-  EntityId new_entity(std::string name, EntityInterface interface,
-                      EntityId parent_id = Entities::kRootEntityId);
+  EntityId create_entity(std::string name, EntityInterface interface,
+                         EntityId parent_id = Entities::kRootEntityId);
+
+  template <typename... T>
+  EntityId create_entity_with(std::string name, EntityInterface interface,
+                              EntityId parent_id, T... components);
 
   void remove_entity(EntityId entityID);
 
@@ -145,10 +150,21 @@ class Entities {
   void traverse(std::function<T(Entities&, EntityId, T)>, T,
                 EntityId rootEntityID = Entities::kRootEntityId);
 
+  EntityId get_entity_by_name(std::string_view name);
+
  private:
   void remove_entity_impl(EntityId entityID, bool detach_from_parent);
+  EntityId new_entity();
   ArchTypeStorage& arctype_from_entity_id(EntityId entity_id);
   uint32_t get_entity_row_index_from_id(EntityId entityID);
+
+  void run_deinit(EntityId entity_id,
+                  std::vector<std::type_index>& component_types);
+  void run_init(EntityId entity_id,
+                std::vector<std::type_index>& component_types);
+
+  template <typename... T>
+  void run_init(EntityId entity_id);
 
   uint32_t entity_count_ = 0;
   uint32_t next_entity_id_ = 1;

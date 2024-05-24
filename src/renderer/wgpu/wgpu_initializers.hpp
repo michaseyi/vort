@@ -1,3 +1,3 @@
 #include "wgpu_types.hpp"
 
-namespace wgpuinit {}
+namespace wginit {}

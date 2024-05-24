@@ -6,7 +6,7 @@ add_library(vort-renderer ${SOURCES})
 
 
 set_target_properties(vort-renderer PROPERTIES
-    CXX_STANDARD 20
+    CXX_STANDARD 23
 )
 
 

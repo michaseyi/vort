@@ -84,15 +84,14 @@ void EditorPlugin::operator()(ecs::World& world) {
   // }
   general.bind_group = renderer::BindGroup::create(
       "General", renderer::BindGroupEntries::from_sequential({
-                     general.common_uniform,
-                     general.model_uniform,
-                    //  general.sampler,
-                    //  general.textures[0],
-                    //  general.textures[1],
-                    //  general.textures[2],
-                    //  general.textures[3],
-                    //  general.textures[4],
-                    //  general.textures[5],
+                     general.common_uniform, general.model_uniform,
+                     //  general.sampler,
+                     //  general.textures[0],
+                     //  general.textures[1],
+                     //  general.textures[2],
+                     //  general.textures[3],
+                     //  general.textures[4],
+                     //  general.textures[5],
                  }));
   world.set_global<RenderTargetOutputs, renderer::General>({},
                                                            std::move(general));
@@ -110,17 +109,17 @@ void EditorPlugin::operator()(ecs::World& world) {
         general.model_uniform.push();
 
         general.bind_group = renderer::BindGroup::create(
-            "Common Resources", renderer::BindGroupEntries::from_indexed({
-                                    {0, general.common_uniform},
-                                    {1, general.model_uniform},
-                                    // {2, general.sampler},
-                                    // {3, general.textures[0]},
-                                    // {4, general.textures[1]},
-                                    // {5, general.textures[2]},
-                                    // {6, general.textures[3]},
-                                    // {7, general.textures[4]},
-                                    // {8, general.textures[5]},
-                                }));
+            "Common Resources",
+            renderer::BindGroupEntries::from_indexed({
+                {0, general.common_uniform}, {1, general.model_uniform},
+                // {2, general.sampler},
+                // {3, general.textures[0]},
+                // {4, general.textures[1]},
+                // {5, general.textures[2]},
+                // {6, general.textures[3]},
+                // {7, general.textures[4]},
+                // {8, general.textures[5]},
+            }));
       });
 
   world.set_component_deinit_handler<Mesh>(
@@ -135,44 +134,44 @@ void EditorPlugin::operator()(ecs::World& world) {
         general.model_uniform.pop();
 
         general.bind_group = renderer::BindGroup::create(
-            "Common Resources", renderer::BindGroupEntries::from_indexed({
-                                    {0, general.common_uniform},
-                                    {1, general.model_uniform},
-                                    // {2, general.sampler},
-                                    // {3, general.textures[0]},
-                                    // {4, general.textures[1]},
-                                    // {5, general.textures[2]},
-                                    // {6, general.textures[3]},
-                                    // {7, general.textures[4]},
-                                    // {8, general.textures[5]},
-                                }));
+            "Common Resources",
+            renderer::BindGroupEntries::from_indexed({
+                {0, general.common_uniform}, {1, general.model_uniform},
+                // {2, general.sampler},
+                // {3, general.textures[0]},
+                // {4, general.textures[1]},
+                // {5, general.textures[2]},
+                // {6, general.textures[3]},
+                // {7, general.textures[4]},
+                // {8, general.textures[5]},
+            }));
       });
 
   // scene
-  auto scene = world.new_entity("Scene", ecs::EntityInterface::Scene);
+  auto scene = world.create_entity("Scene", ecs::EntityInterface::Scene);
 
   // camera
   CameraManager editor_camera(math::vec3(10.0f, 0.0f, 0.0f),
                               CameraSettings(45.0f, 16.0 / 9.0, 0.1f, 1000.0f));
   world.set_components(
-      world.new_entity("Camera", ecs::EntityInterface::Camera, scene),
+      world.create_entity("Camera", ecs::EntityInterface::Camera, scene),
       Position(editor_camera.position), Scale(1.0f),
       Orientation(editor_camera.orientation), editor_camera.settings,
       editor_camera.view, editor_camera.rotation_gizmo);
 
   // point light
   world.set_components(
-      world.new_entity("Point Light", ecs::EntityInterface::Light, scene),
+      world.create_entity("Point Light", ecs::EntityInterface::Light, scene),
       PointLight(math::vec3(0.0f, 8.0f, -10.0f), 0.8, math::vec3(1.0f),
                  math::vec3(0.000007f, 0.0014f, 1.0f)));
 
   // ambient light
   world.set_components(
-      world.new_entity("Ambient Light", ecs::EntityInterface::Light, scene),
+      world.create_entity("Ambient Light", ecs::EntityInterface::Light, scene),
       AmbientLight(math::vec3(1.0f), 0.3));
 
   world.set_components(
-      world.new_entity("Cube", ecs::EntityInterface::Mesh, scene),
+      world.create_entity("Cube", ecs::EntityInterface::Mesh, scene),
       Position(0.0), Scale(1.0f), Orientation(),
       Mesh(new geometry::Cube(4.0f),
            new renderer::materials::BasicMaterial(

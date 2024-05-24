@@ -197,13 +197,12 @@ void DefaultRenderPass::operator()(wgpu::CommandEncoder& command_encoder,
     general.model_uniform.set_active_index(meshIndex);
     general.model_uniform.set(model);
 
-    wgpu::RenderPipelineDescriptor render_pipeline_desc = wgpu::Default;
-
     // drawing modes modes -> surfaces (the default), edges(wireframe),
     // vertices
     std::vector<RenderObject> render_objects = {mesh.get_face_render_object()};
 
     for (auto& render_object : render_objects) {
+      wgpu::RenderPipelineDescriptor render_pipeline_desc = wgpu::Default;
       render_pipeline_desc.vertex.bufferCount =
           render_object.vertex_buffers.size();
       render_pipeline_desc.vertex.buffers =
@@ -233,6 +232,7 @@ void DefaultRenderPass::operator()(wgpu::CommandEncoder& command_encoder,
       depth_stencil_state.depthCompare = wgpu::CompareFunction::Less;
       depth_stencil_state.depthWriteEnabled = true;
       depth_stencil_state.format = wgpu::TextureFormat::Depth24PlusStencil8;
+
       render_pipeline_desc.depthStencil = &depth_stencil_state;
 
 #pragma region pipeline for resources

@@ -121,10 +121,10 @@ static std::array<SurfaceSubdivisionAlgorithm, 3> surfaceSubdivisionAlgorithms =
     {simpleSurfaceSubdivision, loop_surface_subdivision,
      catmullClarkSurfaceSubdivision};
 
-void SubdivisionModifier::modify(MeshStructure& tMesh) {
+void SubdivisionModifier::modify(MeshStructure& mesh_structure) {
   surfaceSubdivisionAlgorithms[static_cast<int>(subdivision_algorithm_)](
-      tMesh, subdivision_level_);
+       mesh_structure , subdivision_level_);
 
-  tMesh.garbage_collection();
+  mesh_structure.garbage_collection();
 }
 }  // namespace core::modifiers

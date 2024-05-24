@@ -5,3 +5,5 @@ add_library(vort-ecs)
 file(GLOB_RECURSE VORT_ECS_SOURCES *.cpp)
 
 target_sources(vort-ecs PRIVATE ${VORT_ECS_SOURCES})
+
+target_include_directories(vort-ecs PUBLIC ..)

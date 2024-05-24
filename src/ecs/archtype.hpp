@@ -23,18 +23,18 @@ class ArchTypeStorage {
   bool has_component(std::type_index type);
 
   template <typename... T>
-  static u_int64_t compute_hash();
+  static uint64_t compute_hash();
 
-  static u_int64_t compute_hash(std::vector<std::type_index>& types);
+  static uint64_t compute_hash(std::vector<std::type_index>& types);
 
   template <typename... T>
   static ArchTypeStorage create();
 
   void compute_hash();
 
-  void set_hash(u_int64_t hash);
+  void set_hash(uint64_t hash);
 
-  u_int64_t get_hash();
+  uint64_t get_hash();
 
   std::vector<EntityId>& entities();
 
@@ -73,8 +73,8 @@ class ArchTypeStorage {
   EntityId get_entity_id_from_row_index(uint32_t row_index);
 
  private:
-  u_int64_t hash_ = 0;
-  
+  uint64_t hash_ = 0;
+
   std::vector<EntityId> entity_ids_;
   std::vector<std::type_index> component_types_;
   ArrayHashMap<std::type_index, ErasedComponentStorage>

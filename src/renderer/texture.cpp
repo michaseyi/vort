@@ -17,7 +17,6 @@ Texture::Texture(std::string path) {
   texture_desc.label = path.c_str();
   texture_desc.usage =
       wgpu::TextureUsage::TextureBinding | wgpu::TextureUsage::CopyDst;
-
   auto& context = WgpuContext::get();
   auto device = context.get_device();
 
